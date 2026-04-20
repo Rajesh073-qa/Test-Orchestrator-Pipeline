@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  role        Role
+  createdAt   DateTime @default(now())
+
+  jiraConnections JiraConnection[]
+  projects        Project[]
+  jobs            Job[]
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model Project {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  userStories UserStory[]
+  createdAt   DateTime    @default(now())
+}
+
+model JiraConnection {
+  id        String   @id @default(uuid())
+  baseUrl   String
+  email     String
+  apiToken  String
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model UserStory {
+  id                 String     @id @default(uuid())
+  jiraId             String?    @unique
+  title              String
+  description        String?
+  acceptanceCriteria String?
+  projectId          String
+  project            Project    @relation(fields: [projectId], references: [id])
+  testCases          TestCase[]
+  createdAt          DateTime   @default(now())
+}
+
+model TestCase {
+  id                String             @id @default(uuid())
+  title             String
+  description       String?
+  priority          String?
+  type              String?
+  userStoryId       String
+  userStory         UserStory          @relation(fields: [userStoryId], references: [id])
+  steps             TestStep[]
+  automationScripts AutomationScript[]
+  createdAt         DateTime           @default(now())
+}
+
+model TestStep {
+  id             String   @id @default(uuid())
+  stepNumber     Int
+  description    String
+  expectedResult String?
+  testCaseId     String
+  testCase       TestCase @relation(fields: [testCaseId], references: [id])
+}
+
+model AutomationScript {
+  id         String   @id @default(uuid())
+  language   String
+  framework  String
+  code       String
+  testCaseId String
+  testCase   TestCase @relation(fields: [testCaseId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model Job {
+  id        String   @id @default(uuid())
+  type      String   // e.g., "BULK_GEN", "PROJECT_EXPORT"
+  status    String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED, COMPLETED_WITH_ERRORS, CANCELLED
+  progress  Int      @default(0)
+  total     Int      @default(0)
+  attempts  Int      @default(0)
+  maxAttempts Int    @default(3)
+  lastError String?  // Stores the last error message for troubleshooting
+  result    String?  // JSON result or error message
+  projectId String?  // Reference to project for idempotency
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

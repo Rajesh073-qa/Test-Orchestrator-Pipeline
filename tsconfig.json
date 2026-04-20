@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@repo/types": ["packages/types/src/index"],
+      "@repo/ai": ["packages/ai/src/index"],
+      "@repo/ui": ["packages/ui/src/index"]
+    }
+  }
+}
