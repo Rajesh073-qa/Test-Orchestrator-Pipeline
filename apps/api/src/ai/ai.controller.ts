@@ -10,12 +10,12 @@ import type { JwtPayload } from '../auth/jwt.strategy';
 export class AIController {
   constructor(private readonly aiService: AIService) {}
 
-  @Post('test-cases/:userStoryId')
-  async generateTestCases(
-    @Param('userStoryId') userStoryId: string,
+  @Post('generate-test-cases')
+  async generateTestCasesBulk(
+    @Body('projectId') projectId: string,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.aiService.generateTestCases(userStoryId, user.userId);
+    return this.aiService.generateTestCasesBulk(projectId, user.userId);
   }
 
   @Post('parse')
@@ -25,7 +25,7 @@ export class AIController {
     return this.aiService.parseRequirement(rawInput);
   }
 
-  @Post('test-plan')
+  @Post('generate-test-plan')
   async generateTestPlan(
     @Body('projectId') projectId: string,
     @Body('structuredData') structuredData: any,

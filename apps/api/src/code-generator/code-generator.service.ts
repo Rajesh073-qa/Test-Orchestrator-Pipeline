@@ -171,6 +171,68 @@ export default defineConfig({
     return archive;
   }
 
+  async exportProject(projectId: string, userId: string): Promise<NodeJS.ReadableStream> {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        userStories: {
+          include: {
+            testCases: {
+              include: {
+                automationScripts: { orderBy: { createdAt: 'desc' }, take: 1 }
+              }
+            }
+          }
+        }
+      },
+    });
+
+    if (!project || project.userId !== userId) {
+      throw new NotFoundException('Project not found or access denied');
+    }
+
+    const archiver = require('archiver');
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    let hasScripts = false;
+
+    // Add files for each test case
+    for (const story of project.userStories) {
+      for (const testCase of story.testCases) {
+        if (testCase.automationScripts.length > 0) {
+          hasScripts = true;
+          const script = testCase.automationScripts[0];
+          const codeData = JSON.parse(script.code);
+
+          const fileName = testCase.title.toLowerCase().replace(/\s+/g, '_');
+
+          archive.append(codeData.testFile, { name: `tests/${fileName}.spec.ts` });
+          archive.append(codeData.pageObject, { name: `pages/${fileName}.page.ts` });
+        }
+      }
+    }
+
+    if (!hasScripts) {
+      throw new BadRequestException('No automation code generated for this project');
+    }
+
+    // Add boilerplate
+    archive.append(JSON.stringify({
+      name: "orchestor-tests",
+      version: "1.0.0",
+      devDependencies: { "@playwright/test": "^1.40.0" }
+    }, null, 2), { name: 'package.json' });
+
+    archive.append(`import { defineConfig } from '@playwright/test';
+export default defineConfig({
+  testDir: './tests',
+  use: { screenshot: 'on', video: 'on-first-retry' },
+});`, { name: 'playwright.config.ts' });
+
+    archive.finalize();
+    return archive;
+  }
+
   async generateForProject(projectId: string, userId: string) {
     // 1. Verify project ownership
     const project = await this.prisma.project.findUnique({
@@ -308,59 +370,5 @@ jobs:
       content: workflowYml,
       path: '.github/workflows/playwright.yml'
     };
-  }
-
-  async exportProject(projectId: string, userId: string): Promise<NodeJS.ReadableStream> {
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      include: {
-        userStories: {
-          include: {
-            testCases: {
-              include: {
-                automationScripts: { orderBy: { createdAt: 'desc' }, take: 1 }
-              }
-            }
-          }
-        }
-      },
-    });
-
-    if (!project || project.userId !== userId) {
-      throw new NotFoundException('Project not found or access denied');
-    }
-
-    const archiver = require('archiver');
-    const archive = archiver('zip', { zlib: { level: 9 } });
-
-    // Add all generated scripts
-    project.userStories.forEach(story => {
-      story.testCases.forEach(tc => {
-        if (tc.automationScripts.length > 0) {
-          const script = tc.automationScripts[0];
-          const codeData = JSON.parse(script.code);
-          const fileName = tc.title.toLowerCase().replace(/\s+/g, '_');
-
-          archive.append(codeData.testFile, { name: `tests/${story.title}/${fileName}.spec.ts` });
-          archive.append(codeData.pageObject, { name: `pages/${story.title}/${fileName}.page.ts` });
-        }
-      });
-    });
-
-    // Add boilerplate
-    archive.append(JSON.stringify({
-      name: project.name.toLowerCase().replace(/\s+/g, '-'),
-      version: "1.0.0",
-      devDependencies: { "@playwright/test": "^1.40.0" }
-    }, null, 2), { name: 'package.json' });
-
-    archive.append(`import { defineConfig } from '@playwright/test';
-export default defineConfig({
-  testDir: './tests',
-  use: { screenshot: 'on', video: 'on-first-retry' },
-});`, { name: 'playwright.config.ts' });
-
-    archive.finalize();
-    return archive;
   }
 }

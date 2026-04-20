@@ -25,7 +25,7 @@ export default function LoginPage() {
     try {
       const response = await apiClient.post('/api/auth/login', formData);
       localStorage.setItem('token', response.data.accessToken);
-      router.push('/dashboard');
+      router.push('/orchestrator');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to login. Please check your credentials.');
     } finally {

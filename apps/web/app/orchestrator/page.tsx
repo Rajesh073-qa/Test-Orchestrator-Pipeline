@@ -133,7 +133,7 @@ export default function OrchestratorPage() {
     if (!projectId) return;
     setLoading(true);
     try {
-      const { data } = await api.post('/ai/test-plan', { 
+      const { data } = await api.post('/ai/generate-test-plan', { 
         projectId, 
         structuredData: mode === 'manual' ? structuredData : undefined 
       });
@@ -167,7 +167,7 @@ export default function OrchestratorPage() {
     try {
       // In a real app, we'd loop through stories or trigger a bulk job
       // For the demo/manual flow, we use the project context
-      await api.post(`/ai/test-cases/bulk/${projectId}`);
+      await api.post('/ai/generate-test-cases', { projectId });
       markCompleted('cases');
       handleNext();
     } catch (err) {

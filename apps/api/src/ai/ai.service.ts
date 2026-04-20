@@ -128,5 +128,66 @@ export class AIService {
       (data) => TestPlanSchema.parse(data)
     );
   }
+
+  async generateTestCasesBulk(projectId: string, userId: string) {
+    // 1. Verify project ownership
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+    });
+
+    if (!project || project.userId !== userId) {
+      throw new NotFoundException('Project not found or access denied');
+    }
+
+    // 2. Get all user stories for the project
+    const stories = await this.prisma.userStory.findMany({
+      where: { projectId },
+    });
+
+    if (stories.length === 0) {
+      throw new BadRequestException('No user stories found in this project');
+    }
+
+    // 3. Generate test cases for each story
+    const results: any[] = [];
+    for (const story of stories) {
+      try {
+        const storyContext = `Story: ${story.title}\nDescription: ${story.description}\nAC: ${story.acceptanceCriteria}`;
+        const testCasesData = await this.retryAI(
+          () => this.aiRepoService.generateTestCases(storyContext),
+          (data) => TestCasesResponseSchema.parse(data)
+        );
+
+        const savedTestCases = await this.prisma.$transaction(
+          testCasesData.map((tc) =>
+            this.prisma.testCase.create({
+              data: {
+                title: tc.title,
+                description: tc.description,
+                priority: tc.priority,
+                type: tc.type,
+                userStoryId: story.id,
+                steps: {
+                  create: tc.steps.map((s) => ({
+                    stepNumber: s.stepNumber,
+                    description: s.action || '',
+                    expectedResult: s.expectedResult,
+                  })),
+                },
+              },
+              include: { steps: true },
+            })
+          )
+        );
+
+        results.push(...savedTestCases);
+      } catch (error) {
+        this.logger.error(`Failed to generate test cases for story ${story.id}: ${error.message}`);
+        // Continue with other stories
+      }
+    }
+
+    return results;
+  }
 }
 

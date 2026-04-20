@@ -41,13 +41,13 @@ export class AuthController {
   }
 
   /**
-   * GET /auth/me
-   * Protected — returns the profile of the currently authenticated user.
+   * POST /auth/forgot-password
+   * Public — sends a password reset email to the user.
    */
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  getMe(@CurrentUser() user: JwtPayload) {
-    return this.authService.getProfile(user.userId);
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  forgotPassword(@Body() dto: { email: string }) {
+    return this.authService.forgotPassword(dto.email);
   }
 
   /**

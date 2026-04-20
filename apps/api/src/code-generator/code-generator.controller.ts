@@ -36,6 +36,22 @@ export class CodeGeneratorController {
     archive.pipe(res);
   }
 
+  @Get('export-project/:projectId')
+  async exportProject(
+    @Param('projectId') projectId: string,
+    @CurrentUser() user: JwtPayload,
+    @Res() res: Response,
+  ) {
+    const archive = await this.codeGeneratorService.exportProject(projectId, user.userId);
+    
+    res.set({
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="orchestor-${projectId}.zip"`,
+    });
+
+    archive.pipe(res);
+  }
+
   @Post('project/:projectId')
   async generateForProject(
     @Param('projectId') projectId: string,
@@ -58,21 +74,5 @@ export class CodeGeneratorController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.codeGeneratorService.generateGitHubWorkflow(projectId, user.userId);
-  }
-
-  @Get('export-project/:projectId')
-  async exportProject(
-    @Param('projectId') projectId: string,
-    @CurrentUser() user: JwtPayload,
-    @Res() res: Response,
-  ) {
-    const archive = await this.codeGeneratorService.exportProject(projectId, user.userId);
-    
-    res.set({
-      'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="project-automation.zip"`,
-    });
-
-    archive.pipe(res);
   }
 }

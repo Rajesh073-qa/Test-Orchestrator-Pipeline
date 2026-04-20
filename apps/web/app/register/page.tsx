@@ -15,7 +15,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    role: 'USER', // Default role
+    role: 'QA', // Default role
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,7 +102,7 @@ export default function RegisterPage() {
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                 >
-                  <option value="USER">QA Engineer</option>
+                  <option value="QA">QA Engineer</option>
                   <option value="ADMIN">Team Lead / Admin</option>
                 </select>
               </div>

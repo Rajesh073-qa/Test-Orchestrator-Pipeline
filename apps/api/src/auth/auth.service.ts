@@ -106,24 +106,24 @@ export class AuthService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // GET PROFILE (used by /auth/me)
+  // FORGOT PASSWORD
   // ─────────────────────────────────────────────────────────────────────────────
-  async getProfile(userId: string) {
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    // 1. Check if user exists
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        // password is explicitly excluded via select
-      },
+      where: { email },
     });
 
+    // For security, always return success even if user doesn't exist
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      this.logger.warn(`Password reset requested for non-existent email: ${email}`);
+      return { message: 'If an account with this email exists, a password reset link has been sent.' };
     }
 
-    return user;
+    // 2. In a real app, generate a reset token and send email
+    // For this demo, just log it
+    this.logger.log(`Password reset requested for: ${email}`);
+
+    return { message: 'If an account with this email exists, a password reset link has been sent.' };
   }
 }

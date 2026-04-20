@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Workflow, Mail, ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import apiClient from '@/lib/api-client';
 
 export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
@@ -14,11 +15,16 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
+    setError('');
+
+    try {
+      await apiClient.post('/auth/forgot-password', { email });
       setSubmitted(true);
-    }, 1500);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to send reset email. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
