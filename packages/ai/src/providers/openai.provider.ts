@@ -81,39 +81,42 @@ export class OpenAIProvider implements AIProviderInterface {
   }
 
   async generateTestPlan(storyContext: string): Promise<string> {
-    const systemMessage = `You are a Senior QA Architect. 
-    Return ONLY valid JSON representing a professional Test Plan. 
-    No explanations or preamble.`;
+    const systemMessage = `You are a world-class Senior QA Architect. 
+    Create a highly professional, enterprise-grade Test Plan. 
+    Be thorough and technical. Analyze risks deeply.
+    Return ONLY valid JSON with fields: { title, objective, scope: { inScope: string[], outOfScope: string[] }, strategy, risks: string[], environment, entryCriteria, exitCriteria }.`;
     
     return this.callOpenAI(storyContext, systemMessage);
   }
 
   async generateTestCases(storyContext: string): Promise<string> {
-    const systemMessage = `You are a Senior QA Engineer. 
-    Generate Positive, Negative, and Edge case test cases based on the provided story.
-    Return ONLY valid JSON as an array of test cases. 
-    No explanations or preamble.`;
+    const systemMessage = `You are an expert Senior QA Engineer specializing in high-coverage testing.
+    Analyze the provided story and generate an exhaustive set of Positive, Negative, and technical Edge Case test cases.
+    Each test case must have a deep description and precise, atomic steps.
+    Return ONLY valid JSON as an array of objects: { title, description, type: "Positive"|"Negative"|"Edge", priority: "High"|"Medium"|"Low", steps: [{ stepNumber, action, expectedResult }] }.`;
     
     return this.callOpenAI(storyContext, systemMessage);
   }
 
   async generateAutomationCode(testCaseContext: string): Promise<string> {
-    const systemMessage = `You are a Senior Automation Engineer. 
-    Generate Playwright automation code using Page Object Model.
-    Return ONLY valid JSON with 'code' and 'explanation' fields.`;
+    const systemMessage = `You are an elite Senior Automation Architect. 
+    Generate clean, maintainable automation code using the Page Object Model (POM) pattern.
+    If multiple pages are involved, use separate objects. Include detailed comments.
+    Return ONLY valid JSON with 'testFile' (full test implementation) and 'pageObject' (reusable elements/methods) fields.`;
     
     return this.callOpenAI(testCaseContext, systemMessage);
   }
 
   async parseRequirement(rawInput: string): Promise<string> {
-    const systemMessage = `You are a Senior Product Architect. 
-    Take the provided unstructured requirement text and convert it into a structured user story format.
-    Return ONLY valid JSON with the following fields:
+    const systemMessage = `You are an elite Senior Product Architect at a top-tier software company. 
+    Your task is to transform raw, unstructured technical requirements into a world-class User Story. 
+    The output must be technically precise, comprehensive, and clear.
+    Return ONLY a valid JSON object with these EXACT fields:
     {
-      "title": "Short descriptive title",
-      "description": "Full detailed description in 'As a, I want, So that' format",
-      "acceptanceCriteria": ["list", "of", "criteria"],
-      "notes": "Any technical or business notes"
+      "title": "A concise, high-impact title",
+      "description": "Full detailed description using the standard 'As a [Role], I want to [Action], so that [Benefit]' format. Include business value.",
+      "acceptanceCriteria": ["Comprehensive list of testable criteria, including functional, performance, and security constraints"],
+      "notes": "Deep technical considerations, architectural dependencies, or edge cases to watch out for"
     }`;
     
     return this.callOpenAI(rawInput, systemMessage);

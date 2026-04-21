@@ -42,28 +42,32 @@ export class GroqProvider implements AIProviderInterface {
 
   async generateTestPlan(storyContext: string): Promise<string> {
     return this.callGroq(
-      `You are a Senior QA Architect. Return ONLY valid JSON representing a comprehensive Test Plan with fields: title, objective, scope (inScope: string[], outOfScope: string[]), strategy, risks: string[], environment, entryCriteria, exitCriteria. No explanation.`,
+      `You are a Senior QA Architect. Create a technical, enterprise-grade Test Plan.
+      Return ONLY valid JSON with fields: { title, objective, scope: { inScope: string[], outOfScope: string[] }, strategy, risks: string[], environment, entryCriteria, exitCriteria }.`,
       storyContext,
     );
   }
 
   async generateTestCases(storyContext: string): Promise<string> {
     return this.callGroq(
-      `You are a Senior QA Engineer. Generate Positive, Negative, and Edge case test cases. Return ONLY valid JSON as an array. Each item: { title, description, type (Positive|Negative|Edge), priority (High|Medium|Low), steps: [{ stepNumber, action, expectedResult }] }. No explanation.`,
+      `You are an expert QA Engineer. Generate exhaustive Positive, Negative, and Edge case test cases.
+      Return ONLY valid JSON as an array: [{ title, description, type: "Positive"|"Negative"|"Edge", priority: "High"|"Medium"|"Low", steps: [{ stepNumber, action, expectedResult }] }].`,
       storyContext,
     );
   }
 
   async generateAutomationCode(context: string): Promise<string> {
     return this.callGroq(
-      `You are a Senior Automation Engineer. Generate automation code using Page Object Model. Return ONLY valid JSON: { "testFile": "...", "pageObject": "..." }. No explanation.`,
+      `You are an elite Automation Architect. Generate clean, maintainable automation code using Page Object Model (POM).
+      Return ONLY valid JSON: { "testFile": "...", "pageObject": "..." }. Include detailed technical comments.`,
       context,
     );
   }
 
   async parseRequirement(rawInput: string): Promise<string> {
     return this.callGroq(
-      `You are a Senior Product Architect. Convert unstructured text to a user story. Return ONLY valid JSON: { "title": "", "description": "", "acceptanceCriteria": [], "notes": "" }. No explanation.`,
+      `You are an elite Product Architect. Transform raw technical input into a comprehensive User Story.
+      Return ONLY valid JSON: { "title": "", "description": "", "acceptanceCriteria": [], "notes": "" }.`,
       rawInput,
     );
   }
