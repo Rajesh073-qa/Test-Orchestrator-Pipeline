@@ -1,34 +1,65 @@
+'use client';
+
+import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Zap } from "lucide-react";
+import { CheckCircle2, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { api } from "@/services/api";
+import { useToast } from "@/components/toast";
 
 export default function PricingPage() {
+  const { toast } = useToast();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
   const plans = [
     {
+      id: "STARTER",
       name: "Starter",
-      price: "$0",
+      price: "₹0",
       description: "Perfect for individual QA engineers.",
       features: ["5 Projects", "AI Test Case Generation", "Basic Export", "Community Support"],
       cta: "Get Started",
       popular: false
     },
     {
+      id: "PRO",
       name: "Pro",
-      price: "$49",
+      price: "₹3,999",
       description: "Ideal for growing agile teams.",
       features: ["Unlimited Projects", "Jira Integration", "Advanced AI Code Gen", "Priority Support", "CI/CD Integration"],
       cta: "Go Pro",
       popular: true
     },
     {
+      id: "ENTERPRISE",
       name: "Enterprise",
-      price: "Custom",
+      price: "₹19,999",
       description: "For large scale organizations.",
       features: ["Self-hosted Option", "Custom LLM Training", "SLA & Training", "Dedicated Account Manager"],
-      cta: "Contact Sales",
+      cta: "Go Enterprise",
       popular: false
     }
   ];
+
+  const handleCheckout = async (planId: string) => {
+    if (planId === "STARTER") return;
+    
+    setLoadingPlan(planId);
+    try {
+      const { data } = await api.post('/payment/checkout', { plan: planId });
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: any) {
+      toast({
+        type: 'error',
+        title: 'Checkout Failed',
+        message: err?.response?.data?.message || 'Please log in to purchase a plan.'
+      });
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -44,7 +75,7 @@ export default function PricingPage() {
           {plans.map((plan) => (
             <div 
               key={plan.name} 
-              className={`relative p-10 rounded-[2.5rem] bg-white border ${plan.popular ? 'border-primary ring-4 ring-primary/5' : 'border-slate-100'} shadow-xl`}
+              className={`relative p-10 rounded-[2.5rem] bg-white border ${plan.popular ? 'border-primary ring-4 ring-primary/5' : 'border-slate-100'} shadow-xl transition-all hover:shadow-2xl`}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full flex items-center gap-1.5">
@@ -57,7 +88,7 @@ export default function PricingPage() {
               </div>
               <div className="mb-8">
                 <span className="text-5xl font-black text-slate-900">{plan.price}</span>
-                {plan.price !== "Custom" && <span className="text-slate-400 font-medium">/mo</span>}
+                {plan.id !== "STARTER" && <span className="text-slate-400 font-medium">/mo</span>}
               </div>
               <div className="space-y-4 mb-10">
                 {plan.features.map((feature) => (
@@ -67,14 +98,23 @@ export default function PricingPage() {
                   </div>
                 ))}
               </div>
-              <Link href="/register" className="block">
+              
+              {plan.id === "STARTER" ? (
+                <Link href="/register" className="block">
+                  <Button className="w-full h-12 rounded-xl font-bold text-lg" variant="outline">
+                    {plan.cta}
+                  </Button>
+                </Link>
+              ) : (
                 <Button 
+                  onClick={() => handleCheckout(plan.id)}
+                  disabled={!!loadingPlan}
                   className={`w-full h-12 rounded-xl font-bold text-lg ${plan.popular ? 'bg-primary' : 'variant-outline'}`}
                   variant={plan.popular ? 'primary' : 'outline'}
                 >
-                  {plan.cta}
+                  {loadingPlan === plan.id ? <Loader2 className="animate-spin w-5 h-5" /> : plan.cta}
                 </Button>
-              </Link>
+              )}
             </div>
           ))}
         </div>

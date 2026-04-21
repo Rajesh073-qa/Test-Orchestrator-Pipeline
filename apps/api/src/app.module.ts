@@ -11,6 +11,7 @@ import { CodeGeneratorModule } from './code-generator/code-generator.module';
 import { TestCaseModule } from './test-case/test-case.module';
 import { CommonModule } from './common/common.module';
 import { AIConfigModule } from './ai-config/ai-config.module';
+import { PaymentModule } from './payment/payment.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
@@ -43,6 +44,7 @@ import { BullModule } from '@nestjs/bullmq';
     TestCaseModule,
     CommonModule,
     AIConfigModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [

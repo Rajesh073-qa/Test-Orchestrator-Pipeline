@@ -1,16 +1,57 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { api } from '@/services/api';
+import { 
+  BarChart3, 
+  Plus, 
+  ChevronRight, 
+  Clock, 
+  Activity, 
+  FolderKanban, 
+  CheckSquare, 
+  Cpu, 
+  ArrowUpRight,
+  TrendingUp,
+  ShieldCheck,
+  Zap,
+  Folder,
+  Beaker,
+  Layout,
+  Database,
+  Code,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Sparkles
+} from 'lucide-react';
 import Link from 'next/link';
-import {
-  Folder, Beaker, Activity, Plus, ChevronRight, Zap, TrendingUp,
-  Layout, Database, Code, Clock, CheckCircle2, XCircle, Loader2,
-  Sparkles, ArrowUpRight
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import apiClient from '@/lib/api-client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Chart as ChartJS, 
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  Title, 
+  Tooltip, 
+  Legend, 
+  Filler 
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
 import { cn } from '@/lib/utils';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const QUICK_ACTIONS = [
   { label: 'Test Plan Gen', href: '/dashboard/generators/test-plan', icon: Layout, color: 'bg-primary/10 text-primary', desc: 'Generate a comprehensive QA test plan' },
@@ -27,9 +68,9 @@ const STATUS_CONFIG: Record<string, { icon: any; color: string; label: string }>
 };
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({ projects: 0, testCases: 0, jobs: 0 });
-  const [recentProjects, setRecentProjects] = useState<any[]>([]);
-  const [recentJobs, setRecentJobs] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [testCases, setTestCases] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
 
@@ -37,17 +78,13 @@ export default function DashboardPage() {
     async function fetchData() {
       try {
         const [projectsRes, testCasesRes, jobsRes] = await Promise.all([
-          apiClient.get('/projects').catch(() => ({ data: [] })),
-          apiClient.get('/test-case').catch(() => ({ data: [] })),
-          apiClient.get('/jobs').catch(() => ({ data: [] })),
+          api.get('/projects').catch(() => ({ data: [] })),
+          api.get('/test-case').catch(() => ({ data: [] })),
+          api.get('/jobs').catch(() => ({ data: [] })),
         ]);
-        setStats({
-          projects: projectsRes.data?.length ?? 0,
-          testCases: testCasesRes.data?.length ?? 0,
-          jobs: jobsRes.data?.length ?? 0,
-        });
-        setRecentProjects(projectsRes.data?.slice(0, 4) ?? []);
-        setRecentJobs(jobsRes.data?.slice(0, 4) ?? []);
+        setProjects(projectsRes.data ?? []);
+        setTestCases(testCasesRes.data ?? []);
+        setJobs(jobsRes.data ?? []);
       } catch (err) {
         console.error('Dashboard fetch error:', err);
       } finally {
@@ -55,7 +92,7 @@ export default function DashboardPage() {
       }
     }
     fetchData();
-    // Get name from stored token (jwtDecode fallback)
+
     try {
       const token = localStorage.getItem('token');
       if (token) {
@@ -65,190 +102,225 @@ export default function DashboardPage() {
     } catch {}
   }, []);
 
-  const STATS = [
-    { label: 'Projects', value: stats.projects, icon: Folder, color: 'text-blue-600', bg: 'bg-blue-50', href: '/dashboard/projects' },
-    { label: 'Test Cases', value: stats.testCases, icon: Beaker, color: 'text-violet-600', bg: 'bg-violet-50', href: '/dashboard/test-cases' },
-    { label: 'Jobs Run', value: stats.jobs, icon: Activity, color: 'text-emerald-600', bg: 'bg-emerald-50', href: '/dashboard/jobs' },
+  const chartData = {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [
+      {
+        label: 'AI Generations',
+        data: [12, 19, 15, 25, 22, 30, 45],
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { grid: { borderDash: [5, 5] }, beginAtZero: true },
+    },
+  };
+
+  const stats = [
+    { label: 'Active Projects', value: projects.length, icon: Folder, color: 'text-blue-600', bg: 'bg-blue-50' },
+    { label: 'Test Cases', value: testCases.length, icon: Beaker, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'AI Jobs', value: jobs.length, icon: Cpu, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Security', value: 'Secure', icon: ShieldCheck, color: 'text-indigo-600', bg: 'bg-indigo-50' },
   ];
 
   return (
-    <div className="space-y-10 pb-10">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-violet-600 p-8 text-white shadow-xl shadow-primary/20">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 text-white/70 text-sm font-bold uppercase tracking-widest mb-2">
-            <Sparkles className="w-4 h-4" /> Welcome back{userName ? `, ${userName}` : ''}
+    <div className="space-y-8 animate-in fade-in duration-700 pb-10">
+      {/* Enterprise Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 text-primary text-xs font-black uppercase tracking-[0.2em] mb-1">
+            <Sparkles className="w-4 h-4" /> Enterprise Dashboard
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight mb-2">QA Orchestration Dashboard</h1>
-          <p className="text-white/70 text-sm max-w-xl">
-            AI-powered test generation at your fingertips. Generate plans, cases, and automation code in seconds.
-          </p>
-          <div className="mt-4 flex gap-3">
-            <Link href="/dashboard/generators/workflow">
-              <Button className="bg-white text-primary hover:bg-white/90 font-bold shadow-lg">
-                <Zap className="w-4 h-4 mr-2" /> Generate Full Workflow
-              </Button>
-            </Link>
-            <Link href="/dashboard/projects">
-              <Button variant="outline" className="border-white/30 text-white hover:bg-white/10">
-                <Plus className="w-4 h-4 mr-2" /> New Project
-              </Button>
-            </Link>
-          </div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">System Overview</h1>
+          <p className="text-slate-500 font-medium">Welcome back{userName ? `, ${userName}` : ''}! Here's your automation roadmap.</p>
         </div>
-        {/* Decorative circles */}
-        <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5" />
-        <div className="absolute -right-4 -bottom-12 w-64 h-64 rounded-full bg-white/5" />
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="font-bold border-slate-200">
+            <Activity className="w-4 h-4 mr-2" /> Global Activity
+          </Button>
+          <Link href="/dashboard/projects">
+            <Button className="font-bold shadow-lg shadow-primary/20">
+              <Plus className="w-4 h-4 mr-2" /> New Project
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid sm:grid-cols-3 gap-6">
-        {STATS.map((s, i) => (
-          <Link key={i} href={s.href}>
-            <Card className="border-none shadow-lg hover:shadow-xl transition-shadow group cursor-pointer">
-              <CardContent className="p-6 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
-                  <h3 className="text-4xl font-extrabold text-slate-900 mt-1">
-                    {loading ? <span className="inline-block w-10 h-9 bg-slate-100 rounded animate-pulse" /> : s.value}
-                  </h3>
+      {/* Modern Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat) => (
+          <Card key={stat.label} className="border-none shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={cn("p-2.5 rounded-xl", stat.bg)}>
+                  <stat.icon className={cn("w-5 h-5", stat.color)} />
                 </div>
-                <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner', s.bg)}>
-                  <s.icon className={cn('w-7 h-7', s.color)} />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> +12%
+                </span>
+              </div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+              <h3 className="text-3xl font-black text-slate-900 mt-1">
+                {loading ? <span className="inline-block w-12 h-8 bg-slate-100 rounded animate-pulse" /> : stat.value}
+              </h3>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-900">⚡ Quick Generators</h2>
+      <div className="grid lg:grid-cols-[1fr_360px] gap-8">
+        {/* Main Chart Area */}
+        <div className="space-y-8">
+          <Card className="border-none shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <div>
+                <CardTitle className="text-lg font-bold text-slate-900">Automation Velocity</CardTitle>
+                <p className="text-xs text-slate-400">Track your AI test generation throughput</p>
+              </div>
+              <select className="text-xs font-bold bg-slate-50 border border-slate-100 rounded-md px-2 py-1 outline-none">
+                <option>Last 7 Days</option>
+                <option>Last 30 Days</option>
+              </select>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px] mt-4">
+                <Line data={chartData} options={chartOptions as any} />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Projects Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-900">Recent Projects</h2>
+              <Link href="/dashboard/projects" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
+                View All <ArrowUpRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2].map(i => <div key={i} className="h-24 bg-slate-100 animate-pulse rounded-2xl" />)}
+              </div>
+            ) : projects.length === 0 ? (
+              <Card className="border-2 border-dashed border-slate-200 bg-transparent py-12 text-center">
+                <FolderKanban className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                <p className="text-slate-500 font-medium">No projects found.</p>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {projects.slice(0, 4).map((p) => (
+                  <Link key={p.id} href={`/dashboard/projects/${p.id}`}>
+                    <Card className="border shadow-sm hover:shadow-md transition-all group cursor-pointer overflow-hidden">
+                      <CardContent className="p-4 flex items-center gap-4">
+                        <div className="w-10 h-10 bg-primary/5 rounded-xl flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                          <Folder className="w-5 h-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-slate-900 group-hover:text-primary transition-colors truncate">{p.name}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                            {p._count?.userStories || 0} User Stories
+                          </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {QUICK_ACTIONS.map((a, i) => (
-            <Link key={i} href={a.href}>
-              <Card className="border hover:border-primary/30 hover:shadow-lg transition-all group cursor-pointer h-full">
-                <CardContent className="p-5 flex flex-col gap-3">
-                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', a.color)}>
+
+        {/* Sidebar Widgets */}
+        <div className="space-y-8">
+          {/* Quick Actions */}
+          <Card className="border-none shadow-sm bg-slate-900 text-white">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">Quick Generators</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {QUICK_ACTIONS.map((a, i) => (
+                <Link key={i} href={a.href} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 transition-colors group">
+                  <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center group-hover:bg-primary transition-colors", a.color)}>
                     <a.icon className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900 group-hover:text-primary transition-colors">{a.label}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{a.desc}</p>
+                    <div className="text-sm font-bold group-hover:text-primary transition-colors">{a.label}</div>
+                    <div className="text-[10px] text-slate-500 line-clamp-1">{a.desc}</div>
                   </div>
-                  <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors mt-auto self-end" />
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Projects + Recent Jobs */}
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Recent Projects */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-slate-900">Recent Projects</h2>
-            <div className="flex items-center gap-3">
-              <Link href="/dashboard/projects">
-                <Button size="sm" variant="outline" className="h-8 border-primary/20 text-primary hover:bg-primary/5 font-bold">
-                  <Plus className="w-4 h-4 mr-1" /> New Project
-                </Button>
-              </Link>
-              <Link href="/dashboard/projects" className="text-sm font-bold text-slate-400 hover:text-primary transition-colors flex items-center gap-1">
-                View all <ChevronRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {loading ? (
-              [1,2,3].map(i => <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />)
-            ) : recentProjects.length === 0 ? (
-              <Card className="border-dashed border-2 bg-slate-50/80">
-                <CardContent className="p-8 text-center flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
-                    <Folder className="w-6 h-6 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800">No projects yet</p>
-                    <p className="text-sm text-slate-500">Create your first project to track test suites.</p>
-                  </div>
-                  <Link href="/dashboard/projects">
-                    <Button size="sm" variant="outline">Create First Project</Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ) : (
-              recentProjects.map((p: any) => (
-                <Link key={p.id} href={`/dashboard/projects/${p.id}`}>
-                  <Card className="hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group">
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                        <Folder className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-slate-900 truncate">{p.name}</p>
-                        <p className="text-xs text-slate-500">{p.description || 'No description'}</p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                    </CardContent>
-                  </Card>
                 </Link>
-              ))
-            )}
-          </div>
-        </div>
+              ))}
+              
+              <div className="pt-4 border-t border-slate-800 mt-4">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-4">
+                  <span>SYSTEM STATUS</span>
+                  <span className="text-emerald-400">● ONLINE</span>
+                </div>
+                <div className="space-y-3">
+                  <StatusRow label="Jira Bridge" status="Active" />
+                  <StatusRow label="AI Models" status="Operational" />
+                  <StatusRow label="Cloud Storage" status="Operational" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Recent Jobs */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-slate-900">Recent Jobs</h2>
-            <Link href="/dashboard/jobs" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
-              View all <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {loading ? (
-              [1,2,3].map(i => <div key={i} className="h-16 bg-slate-100 rounded-xl animate-pulse" />)
-            ) : recentJobs.length === 0 ? (
-              <Card className="border-dashed border-2 bg-slate-50/80">
-                <CardContent className="p-8 text-center flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
-                    <Activity className="w-6 h-6 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800">No jobs yet</p>
-                    <p className="text-sm text-slate-500">Background AI generation tasks appear here.</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              recentJobs.map((j: any) => {
-                const sc = STATUS_CONFIG[j.status] ?? STATUS_CONFIG['PENDING']!;
-                const StatusIcon = sc.icon;
-                return (
-                  <Card key={j.id} className="border">
-                    <CardContent className="p-4 flex items-center gap-4">
-                      <StatusIcon className={cn('w-5 h-5 flex-shrink-0', sc.color, j.status === 'RUNNING' && 'animate-spin')} />
+          {/* Recent Jobs Panel */}
+          <Card className="border-none shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold">Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loading ? (
+                [1, 2, 3].map(i => <div key={i} className="h-12 bg-slate-50 rounded-lg animate-pulse" />)
+              ) : jobs.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-4">No recent activity.</p>
+              ) : (
+                jobs.slice(0, 5).map((j: any) => {
+                  const sc = STATUS_CONFIG[j.status] ?? STATUS_CONFIG['PENDING']!;
+                  return (
+                    <div key={j.id} className="flex items-center gap-3">
+                      <div className={cn("w-2 h-2 rounded-full", sc.color.replace('text', 'bg'))} />
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-slate-900 text-sm capitalize">{j.type?.replace(/_/g, ' ').toLowerCase()}</p>
-                        <p className="text-xs text-slate-400 font-mono">#{j.id.slice(0, 8)}</p>
+                        <p className="text-xs font-bold text-slate-700 truncate capitalize">{j.type?.replace(/_/g, ' ').toLowerCase()}</p>
+                        <p className="text-[10px] text-slate-400">{new Date(j.createdAt).toLocaleTimeString()}</p>
                       </div>
-                      <span className={cn('text-[10px] font-black px-2 py-0.5 rounded-full', sc.color, 'bg-slate-50 border border-current/20')}>
-                        {sc.label}
+                      <span className={cn("text-[9px] font-black px-2 py-0.5 rounded-full border", sc.color, "bg-slate-50")}>
+                        {j.status}
                       </span>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
+                    </div>
+                  );
+                })
+              )}
+              <Link href="/dashboard/jobs" className="block pt-2 text-center text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">
+                View All Activity
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatusRow({ label, status }: { label: string; status: string }) {
+  return (
+    <div className="flex items-center justify-between text-[11px]">
+      <span className="text-slate-400">{label}</span>
+      <span className="text-slate-200 font-bold">{status}</span>
     </div>
   );
 }

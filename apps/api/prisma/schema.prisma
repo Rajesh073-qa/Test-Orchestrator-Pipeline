@@ -8,17 +8,33 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  name        String?
-  password    String
-  role        Role     @default(USER)
-  createdAt   DateTime @default(now())
+  id              String   @id @default(uuid())
+  email           String   @unique
+  name            String?
+  password        String?  // Optional for OAuth users
+  role            Role     @default(USER)
+  googleId        String?  @unique
+  twoFactorSecret String?  // For TOTP
+  is2FAEnabled    Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
   jiraConnections JiraConnection[]
   projects        Project[]
   jobs            Job[]
   aiConfig        AIConfig?
+  subscription    Subscription?
+}
+
+model Subscription {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id])
+  plan                 String   @default("STARTER") // STARTER | PRO | ENTERPRISE
+  status               String   @default("ACTIVE")  // ACTIVE | CANCELLED | EXPIRED
+  stripeCustomerId     String?  @unique
+  stripeSubscriptionId String?  @unique
+  currentPeriodEnd     DateTime?
+  updatedAt            DateTime @updatedAt
 }
 
 enum Role {

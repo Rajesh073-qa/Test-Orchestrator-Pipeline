@@ -79,6 +79,9 @@ export class AuthService {
     }
 
     // 2. Verify password against bcrypt hash
+    if (!user.password) {
+      throw new UnauthorizedException('Please login with Google');
+    }
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -126,5 +129,51 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GOOGLE AUTH
+  // ─────────────────────────────────────────────────────────────────────────────
+  async validateGoogleUser(googleUser: any) {
+    let user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ googleId: googleUser.googleId }, { email: googleUser.email }],
+      },
+    });
+
+    if (user) {
+      // If user exists but hasn't linked Google yet, link it
+      if (!user.googleId) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { googleId: googleUser.googleId },
+        });
+      }
+    } else {
+      // Create new user for Google signup
+      user = await this.prisma.user.create({
+        data: {
+          email: googleUser.email,
+          name: `${googleUser.firstName} ${googleUser.lastName}`,
+          googleId: googleUser.googleId,
+          password: '', // OAuth users don't have a password
+        },
+      });
+    }
+
+    const payload: JwtPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role as any,
+    };
+    return {
+      accessToken: this.jwtService.sign(payload),
+      user: {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+    };
   }
 }

@@ -7,6 +7,10 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { PrismaService } from '../prisma.service';
 
+import { GoogleStrategy } from './google.strategy';
+
+import { TwoFactorService } from './two-factor.service';
+
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -22,7 +26,7 @@ import { PrismaService } from '../prisma.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, PrismaService],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, TwoFactorService, PrismaService],
   /**
    * Export JwtAuthGuard + PassportModule so other modules
    * can protect their routes without re-importing JwtModule.

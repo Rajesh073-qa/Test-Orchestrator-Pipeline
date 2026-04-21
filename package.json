@@ -20,5 +20,15 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "@stripe/react-stripe-js": "^6.2.0",
+    "@stripe/stripe-js": "^9.2.0",
+    "chart.js": "^4.5.1",
+    "passport-google-oauth20": "^2.0.0",
+    "qrcode": "^1.5.4",
+    "react-chartjs-2": "^5.3.1",
+    "speakeasy": "^2.0.0",
+    "stripe": "^22.0.2"
+  }
 }
