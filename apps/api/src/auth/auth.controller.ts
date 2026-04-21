@@ -60,6 +60,12 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Post('login-2fa')
+  @HttpCode(HttpStatus.OK)
+  login2FA(@Body('userId') userId: string, @Body('token') token: string) {
+    return this.authService.loginWith2FA(userId, token);
+  }
+
   /**
    * GET /auth/me
    * Protected — returns the profile of the currently authenticated user.

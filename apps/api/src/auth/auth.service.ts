@@ -67,13 +67,12 @@ export class AuthService {
   // ─────────────────────────────────────────────────────────────────────────────
   // LOGIN
   // ─────────────────────────────────────────────────────────────────────────────
-  async login(dto: LoginDto): Promise<{ accessToken: string; user: Omit<JwtPayload, never> }> {
+  async login(dto: LoginDto): Promise<any> {
     // 1. Find user by email
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
 
-    // Use a generic error — never reveal whether email exists
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -87,24 +86,59 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // 3. Build JWT payload — role comes from DB, never from client
+    // 3. Check for 2FA
+    if (user.is2FAEnabled) {
+      return {
+        mfaRequired: true,
+        userId: user.id,
+        // Optional: Return a short-lived "pre-auth" token if needed
+      };
+    }
+
+    // 4. Build JWT payload
     const payload: JwtPayload = {
       userId: user.id,
       email: user.email,
-      role: user.role as 'ADMIN' | 'QA' | 'VIEWER',
+      role: user.role as any,
     };
 
     const accessToken = this.jwtService.sign(payload);
 
     this.logger.log(`User logged in: ${user.email} [${user.role}]`);
 
-    // 4. Return token + safe user info — NEVER expose password
     return {
       accessToken,
       user: {
         userId: user.id,
         email: user.email,
-        role: user.role as 'ADMIN' | 'QA' | 'VIEWER',
+        role: user.role,
+      },
+    };
+  }
+
+  async loginWith2FA(userId: string, token: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.twoFactorSecret) throw new UnauthorizedException();
+
+    // Re-use TwoFactorService logic or just use speakeasy directly
+    // For simplicity, I'll assume we pass TwoFactorService in constructor if needed, 
+    // but here I'll use speakeasy directly since it's already in the workspace.
+    const speakeasy = require('speakeasy');
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token,
+    });
+
+    if (!verified) throw new UnauthorizedException('Invalid 2FA token');
+
+    const payload: JwtPayload = { userId: user.id, email: user.email, role: user.role as any };
+    return {
+      accessToken: this.jwtService.sign(payload),
+      user: {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
       },
     };
   }

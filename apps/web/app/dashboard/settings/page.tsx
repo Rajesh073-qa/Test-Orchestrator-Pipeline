@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { api } from '@/services/api';
-import { Settings, Bot, CheckCircle2, AlertCircle, Loader2, Trash2, Key, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Settings, Bot, CheckCircle2, Loader2, Trash2, Key, ExternalLink, ShieldCheck, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import JiraIntegration from '@/features/jira/components/jira-integration';
+import TwoFactorSettings from './components/TwoFactorSettings';
 import { useToast } from '@/components/toast';
 
 const PROVIDERS: Record<string, { label: string; color: string; docsUrl?: string; models: { id: string; label: string }[] }> = {
@@ -90,7 +92,6 @@ export default function SettingsPage() {
   const [baseUrl, setBaseUrl] = useState('http://localhost:11434');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -110,7 +111,6 @@ export default function SettingsPage() {
 
   useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
-  // When provider changes, reset model to the first option
   const handleProviderChange = (provider: string) => {
     setSelectedProvider(provider);
     setSelectedModel(PROVIDERS[provider]?.models[0]?.id || '');
@@ -118,8 +118,8 @@ export default function SettingsPage() {
   };
 
   const handleSave = async () => {
-    if (selectedProvider !== 'mock' && !apiKey.trim()) {
-      toast({ type: 'error', title: 'API Key Required', message: 'Please enter a valid API key for the selected provider.' });
+    if (selectedProvider !== 'mock' && selectedProvider !== 'ollama' && !apiKey.trim()) {
+      toast({ type: 'error', title: 'API Key Required', message: 'Please enter a valid API key.' });
       return;
     }
     setSaving(true);
@@ -134,7 +134,7 @@ export default function SettingsPage() {
       setApiKey('');
       await fetchConfig();
     } catch (err: any) {
-      toast({ type: 'error', title: 'Save Failed', message: err?.response?.data?.message || 'Failed to save AI configuration.' });
+      toast({ type: 'error', title: 'Save Failed', message: 'Failed to save configuration.' });
     } finally {
       setSaving(false);
     }
@@ -143,13 +143,11 @@ export default function SettingsPage() {
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const { data } = await api.delete('/ai-config');
-      toast({ type: 'info', title: 'Configuration Removed', message: data.message });
+      await api.delete('/ai-config');
+      toast({ type: 'info', title: 'Config Removed' });
       setCurrentConfig(null);
-      setSelectedProvider('groq');
-      setSelectedModel('llama-3.3-70b-versatile');
     } catch (err: any) {
-      toast({ type: 'error', title: 'Delete Failed', message: err?.response?.data?.message || 'Failed to remove configuration.' });
+      toast({ type: 'error', title: 'Delete Failed' });
     } finally {
       setDeleting(false);
     }
@@ -160,143 +158,130 @@ export default function SettingsPage() {
   return (
     <div className="space-y-10 pb-10">
       <div>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
-          <Settings className="w-8 h-8 text-primary" /> Settings
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+          <Settings className="w-8 h-8 text-primary" /> Workspace Settings
         </h1>
-        <p className="text-slate-500 mt-1">Configure your AI provider, manage integrations, and personalize the platform.</p>
+        <p className="text-slate-500 mt-1 font-medium">Configure models, security, and integrations.</p>
       </div>
 
-      {/* ── AI Configuration ── */}
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">🤖 AI Provider Configuration</h2>
-          <p className="text-slate-500 text-sm mt-1">Select your preferred AI model. All generators will use this provider.</p>
-        </div>
+      <div className="grid lg:grid-cols-[1fr_400px] gap-8 items-start">
+        <div className="space-y-10">
+          {/* AI Config */}
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              <Bot className="w-5 h-5" /> AI Engine
+            </h2>
 
-        {/* Current Config Banner */}
-        {!loadingConfig && currentConfig?.configured && (
-          <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              <div>
-                <p className="font-bold text-emerald-800 text-sm">Active AI Provider</p>
-                <p className="text-emerald-700 text-xs">
-                  {PROVIDERS[currentConfig.provider]?.label} — <span className="font-mono">{currentConfig.apiKeyMasked}</span>
-                </p>
-              </div>
-            </div>
-            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 h-8" onClick={handleDelete} disabled={deleting}>
-              {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
-              Remove
-            </Button>
-          </div>
-        )}
-
-        <Card className="border-none shadow-xl">
-          <CardContent className="p-6 space-y-6">
-            {/* Provider Grid */}
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Choose AI Provider</label>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Object.entries(PROVIDERS).map(([key, p]) => (
-                  <button
-                    key={key}
-                    onClick={() => handleProviderChange(key)}
-                    className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
-                      selectedProvider === key
-                        ? 'border-primary bg-primary/5 shadow-md'
-                        : 'border-slate-100 hover:border-slate-300 bg-white'
-                    }`}
-                  >
-                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ${p.color}`} />
-                    <span className={`text-sm font-semibold ${selectedProvider === key ? 'text-primary' : 'text-slate-700'}`}>
-                      {p.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Model Select */}
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Select Model</label>
-              <select
-                className="w-full h-10 px-3 rounded-lg border bg-white focus:ring-2 focus:ring-primary outline-none text-sm"
-                value={selectedModel}
-                onChange={e => setSelectedModel(e.target.value)}
-              >
-                {providerConfig.models.map(m => (
-                  <option key={m.id} value={m.id}>{m.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* API Key Field */}
-            {selectedProvider !== 'mock' && selectedProvider !== 'ollama' && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                    <Key className="w-4 h-4" /> API Key
-                  </label>
-                  {providerConfig.docsUrl && (
-                    <a href={providerConfig.docsUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                      Get API Key <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
+            {!loadingConfig && currentConfig?.configured && (
+              <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <div>
+                    <p className="font-bold text-emerald-800 text-sm">{PROVIDERS[currentConfig.provider]?.label}</p>
+                    <p className="text-emerald-700 text-xs font-mono">{currentConfig.apiKeyMasked}</p>
+                  </div>
                 </div>
-                <input
-                  type="password"
-                  placeholder={`Paste your ${providerConfig.label} API key...`}
-                  className="w-full h-10 px-3 rounded-lg border bg-white focus:ring-2 focus:ring-primary outline-none text-sm font-mono"
-                  value={apiKey}
-                  onChange={e => setApiKey(e.target.value)}
-                />
-                <p className="text-xs text-slate-400">
-                  🔒 Keys are encrypted with AES-256 before storage. Never exposed in responses.
-                </p>
+                <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                </Button>
               </div>
             )}
 
-            {/* Ollama Base URL Field */}
-            {selectedProvider === 'ollama' && (
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                  🌐 Ollama Base URL
-                </label>
-                <input
-                  type="url"
-                  placeholder="http://localhost:11434"
-                  className="w-full h-10 px-3 rounded-lg border bg-white focus:ring-2 focus:ring-primary outline-none text-sm font-mono"
-                  value={baseUrl}
-                  onChange={e => setBaseUrl(e.target.value)}
-                />
-                <p className="text-xs text-slate-400">
-                  Ensure Ollama is running and your model is pulled (e.g. <code>ollama pull llama3</code>).
-                </p>
-              </div>
-            )}
+            <Card className="border-none shadow-xl">
+              <CardContent className="p-6 space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Provider</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(PROVIDERS).map(([key, p]) => (
+                      <button
+                        key={key}
+                        onClick={() => handleProviderChange(key)}
+                        className={`p-2 rounded-lg border text-xs font-bold transition-all ${
+                          selectedProvider === key ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 hover:border-slate-300'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {selectedProvider === 'mock' && (
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-sm text-slate-600">
-                <p className="font-bold text-slate-700 mb-1">📋 Mock AI Mode</p>
-                <p>Returns pre-defined sample data. No API key required. Useful for testing the UI without API costs.</p>
-              </div>
-            )}
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-slate-700">Model</label>
+                  <select
+                    className="w-full h-10 px-3 rounded-lg border bg-white focus:ring-2 focus:ring-primary outline-none text-sm"
+                    value={selectedModel}
+                    onChange={e => setSelectedModel(e.target.value)}
+                  >
+                    {providerConfig.models.map(m => (
+                      <option key={m.id} value={m.id}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
 
-            <Button className="w-full font-bold h-11 shadow-lg shadow-primary/20" onClick={handleSave} disabled={saving}>
-              {saving ? <><Loader2 className="animate-spin mr-2 w-4 h-4" />Saving...</> : <><Bot className="w-4 h-4 mr-2" />Save AI Configuration</>}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+                {selectedProvider !== 'mock' && selectedProvider !== 'ollama' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">API Key</label>
+                    <input
+                      type="password"
+                      className="w-full h-10 px-3 rounded-lg border bg-white focus:ring-2 focus:ring-primary outline-none text-sm font-mono"
+                      value={apiKey}
+                      onChange={e => setApiKey(e.target.value)}
+                    />
+                  </div>
+                )}
 
-      {/* ── Jira Integration ── */}
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">🔗 Jira Integration</h2>
-          <p className="text-slate-500 text-sm mt-1">Connect your Atlassian Jira account to import requirements directly into generators.</p>
+                {selectedProvider === 'ollama' && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Local URL</label>
+                    <input
+                      type="text"
+                      className="w-full h-10 px-3 rounded-lg border bg-white focus:ring-2 focus:ring-primary outline-none text-sm font-mono"
+                      value={baseUrl}
+                      onChange={e => setBaseUrl(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <Button className="w-full font-bold h-11" onClick={handleSave} disabled={saving}>
+                  {saving ? <Loader2 className="animate-spin mr-2 w-4 h-4" /> : <Bot className="w-4 h-4 mr-2" />}
+                  Save AI Engine
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-slate-900">🔗 Integrations</h2>
+            <JiraIntegration />
+          </div>
         </div>
-        <JiraIntegration />
+
+        <div className="space-y-10">
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5" /> Security
+            </h2>
+            <TwoFactorSettings />
+          </div>
+
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              <CreditCard className="w-5 h-5" /> Billing
+            </h2>
+            <Card className="border-none shadow-xl bg-slate-900 text-white overflow-hidden relative">
+              <CardContent className="p-6">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Enterprise Tier</p>
+                <h3 className="text-2xl font-black mt-1">₹3,999<span className="text-xs opacity-50 font-medium"> / month</span></h3>
+                <div className="mt-6 flex gap-2">
+                  <Link href="/pricing" className="flex-1">
+                    <Button variant="secondary" className="w-full font-bold text-xs">Manage Plan</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
