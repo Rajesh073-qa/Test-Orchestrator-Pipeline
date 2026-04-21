@@ -4,27 +4,37 @@ import { AIService as RepoAIService, OpenAIProvider, MockAIProvider } from '@rep
 import { ConfigService } from '@nestjs/config';
 import { TestPlanSchema } from './validators/test-plan.schema';
 import { TestCasesResponseSchema } from './validators/test-case.schema';
+import { AIConfigService } from '../ai-config/ai-config.service';
 
 @Injectable()
 export class AIService {
   private readonly logger = new Logger(AIService.name);
-  private aiRepoService: RepoAIService;
+  private readonly fallbackAIService: RepoAIService;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly aiConfigService: AIConfigService,
   ) {
+    // Build a fallback service for non-user-scoped operations (legacy project-based)
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    
     let provider;
     if (!apiKey || apiKey === 'sk-xxx' || apiKey === 'mock') {
-      this.logger.warn('using Mock AI Provider (No API Key or mock key)');
+      this.logger.warn('Using Mock AI Provider (No API Key or mock key set in .env)');
       provider = new MockAIProvider();
     } else {
       provider = new OpenAIProvider(apiKey);
     }
-    
-    this.aiRepoService = new RepoAIService(provider);
+    this.fallbackAIService = new RepoAIService(provider);
+  }
+
+  /** Get an AI service scoped to the user's configured provider. Falls back to env key. */
+  private async getAIService(userId: string): Promise<RepoAIService> {
+    try {
+      return await this.aiConfigService.buildAIService(userId);
+    } catch {
+      return this.fallbackAIService;
+    }
   }
 
   private async retryAI<T>(
@@ -47,7 +57,6 @@ export class AIService {
   }
 
   async generateTestCases(userStoryId: string, userId: string) {
-    // 1. Fetch story and verify ownership
     const story = await this.prisma.userStory.findUnique({
       where: { id: userStoryId },
       include: { project: true },
@@ -57,16 +66,14 @@ export class AIService {
       throw new NotFoundException('User story not found or access denied');
     }
 
-    // 2. Build context
     const storyContext = `Story: ${story.title}\nDescription: ${story.description}\nAC: ${story.acceptanceCriteria}`;
+    const aiService = await this.getAIService(userId);
 
-    // 3. Call AI with retry and validation
     const testCasesData = await this.retryAI(
-      () => this.aiRepoService.generateTestCases(storyContext),
+      () => aiService.generateTestCases(storyContext),
       (data) => TestCasesResponseSchema.parse(data)
     );
 
-    // 4. Save to DB with transaction
     const savedTestCases = await this.prisma.$transaction(
       testCasesData.map((tc) =>
         this.prisma.testCase.create({
@@ -81,7 +88,6 @@ export class AIService {
                 stepNumber: s.stepNumber,
                 description: s.action || '',
                 expectedResult: s.expectedResult,
-
               })),
             },
           },
@@ -98,7 +104,7 @@ export class AIService {
       throw new BadRequestException('Input is too short to be a valid requirement.');
     }
 
-    const rawResponse = await this.aiRepoService.parseRequirement(rawInput);
+    const rawResponse = await this.fallbackAIService.parseRequirement(rawInput);
     try {
       return JSON.parse(rawResponse);
     } catch (e) {
@@ -108,45 +114,28 @@ export class AIService {
   }
 
   async generateTestPlan(projectId: string, userId: string, structuredData?: any) {
-    // 1. Verify project ownership
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-    });
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
 
     if (!project || project.userId !== userId) {
       throw new NotFoundException('Project not found or access denied');
     }
 
-    // 2. Build context and persist story if manual
     let context = '';
     if (structuredData) {
       context = `Title: ${structuredData.title}\nDescription: ${structuredData.description}\nAC: ${structuredData.acceptanceCriteria?.join(', ')}`;
-      
-      // PERSIST STORY for manual flow so test cases can be generated bulk
       await this.prisma.userStory.upsert({
-        where: { jiraId: `MANUAL-${projectId}` }, // Use a deterministic ID for manual story per project
-        update: {
-          title: structuredData.title,
-          description: structuredData.description,
-          acceptanceCriteria: structuredData.acceptanceCriteria?.join('\n'),
-        },
-        create: {
-          jiraId: `MANUAL-${projectId}`,
-          title: structuredData.title,
-          description: structuredData.description,
-          acceptanceCriteria: structuredData.acceptanceCriteria?.join('\n'),
-          projectId,
-        },
+        where: { jiraId: `MANUAL-${projectId}` },
+        update: { title: structuredData.title, description: structuredData.description, acceptanceCriteria: structuredData.acceptanceCriteria?.join('\n') },
+        create: { jiraId: `MANUAL-${projectId}`, title: structuredData.title, description: structuredData.description, acceptanceCriteria: structuredData.acceptanceCriteria?.join('\n'), projectId },
       });
     } else {
-      // Fallback: get all stories for project (simplified)
       const stories = await this.prisma.userStory.findMany({ where: { projectId } });
       context = stories.map(s => `Story: ${s.title}\nDesc: ${s.description}`).join('\n\n');
     }
 
-    // 3. Call AI
+    const aiService = await this.getAIService(userId);
     return this.retryAI(
-      () => this.aiRepoService.generateTestPlan(context),
+      () => aiService.generateTestPlan(context),
       (data) => TestPlanSchema.parse(data)
     );
   }
@@ -167,32 +156,34 @@ export class AIService {
       results.push({ storyId: story.id, count: cases.length });
     }
 
-    return {
-      message: `Generated test cases for ${project.userStories.length} stories`,
-      results,
-    };
+    return { message: `Generated test cases for ${project.userStories.length} stories`, results };
   }
-  async quickGenerateTestPlan(text: string) {
+
+  // ── Quick (stateless) generators — use per-user config ──────────────────────
+
+  async quickGenerateTestPlan(text: string, userId?: string) {
+    const aiService = userId ? await this.getAIService(userId) : this.fallbackAIService;
     return this.retryAI(
-      () => this.aiRepoService.generateTestPlan(text),
+      () => aiService.generateTestPlan(text),
       (data) => TestPlanSchema.parse(data)
     );
   }
 
-  async quickGenerateTestCases(text: string) {
+  async quickGenerateTestCases(text: string, userId?: string) {
+    const aiService = userId ? await this.getAIService(userId) : this.fallbackAIService;
     return this.retryAI(
-      () => this.aiRepoService.generateTestCases(text),
+      () => aiService.generateTestCases(text),
       (data) => TestCasesResponseSchema.parse(data)
     );
   }
 
-  async quickGenerateCode(text: string, framework: string) {
-    const context = `Context: ${text}\nRequirements:\n- Use ${framework} with TypeScript.\n- Follow Page Object Model (POM).\n- Return a JSON object with 'testFile' and 'pageObject' keys.`;
+  async quickGenerateCode(text: string, framework: string, userId?: string) {
+    const aiService = userId ? await this.getAIService(userId) : this.fallbackAIService;
+    const context = `Context: ${text}\nRequirements:\n- Use ${framework} with ${framework === 'selenium' ? 'Java' : 'TypeScript'}.\n- Follow Page Object Model (POM).\n- Return a JSON object with 'testFile' and 'pageObject' keys.`;
     const { CodeGenSchema } = require('../code-generator/validators/code-gen.schema');
     return this.retryAI(
-      () => this.aiRepoService.generateAutomationCode(context),
+      () => aiService.generateAutomationCode(context),
       (data) => CodeGenSchema.parse(data)
     );
   }
 }
-

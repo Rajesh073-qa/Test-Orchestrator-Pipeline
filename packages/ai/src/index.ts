@@ -2,3 +2,7 @@ export * from './services/ai.service';
 export * from './interfaces/ai.interface';
 export * from './providers/openai.provider';
 export * from './providers/mock.provider';
+export * from './providers/groq.provider';
+export * from './providers/gemini.provider';
+export * from './providers/mistral.provider';
+export * from './providers/openrouter.provider';

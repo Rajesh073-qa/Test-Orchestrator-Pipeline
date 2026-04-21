@@ -10,6 +10,7 @@ import { AIModule } from './ai/ai.module';
 import { CodeGeneratorModule } from './code-generator/code-generator.module';
 import { TestCaseModule } from './test-case/test-case.module';
 import { CommonModule } from './common/common.module';
+import { AIConfigModule } from './ai-config/ai-config.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
@@ -41,6 +42,7 @@ import { BullModule } from '@nestjs/bullmq';
     CodeGeneratorModule,
     TestCaseModule,
     CommonModule,
+    AIConfigModule,
   ],
   controllers: [AppController],
   providers: [
