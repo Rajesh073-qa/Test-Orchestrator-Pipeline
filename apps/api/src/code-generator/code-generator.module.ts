@@ -3,9 +3,11 @@ import { CodeGeneratorService } from './code-generator.service';
 import { CodeGeneratorController } from './code-generator.controller';
 import { BullModule } from '@nestjs/bullmq';
 import { CodeGeneratorProcessor } from './code-generator.processor';
+import { AIModule } from '../ai/ai.module';
 
 @Module({
   imports: [
+    AIModule,
     BullModule.registerQueue({
       name: 'code-generation',
     }),

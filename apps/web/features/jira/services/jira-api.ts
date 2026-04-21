@@ -1,7 +1,7 @@
 import { api } from "@/services/api";
 
 export interface JiraConfig {
-  host: string;
+  baseUrl: string;   // matches backend ConnectJiraDto.baseUrl
   email: string;
   apiToken: string;
 }
@@ -19,8 +19,8 @@ export const jiraApi = {
     const { data } = await api.get('/jira/projects');
     return data;
   },
-  importStories: async (projectId: string, jiraProjectId: string) => {
-    const { data } = await api.post(`/jira/stories/${projectId}`, { jiraProjectId });
+  importStories: async (projectId: string, jiraProjectKey: string) => {
+    const { data } = await api.post(`/jira/stories/${projectId}?jiraKey=${encodeURIComponent(jiraProjectKey)}`);
     return data;
   },
   getIssue: async (issueKey: string) => {

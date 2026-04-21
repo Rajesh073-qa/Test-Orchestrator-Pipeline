@@ -7,31 +7,19 @@ import { JobService } from '../common/job.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
+import { AIService } from '../ai/ai.service';
+
 @Injectable()
 export class CodeGeneratorService {
   private readonly logger = new Logger(CodeGeneratorService.name);
-  private aiRepoService: RepoAIService;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly jobService: JobService,
+    private readonly aiService: AIService,
     @InjectQueue('code-generation') private readonly codeGenQueue: Queue,
-  ) {
-
-
-    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    
-    let provider;
-    if (!apiKey || apiKey === 'sk-xxx' || apiKey === 'mock') {
-      this.logger.warn('using Mock AI Provider for Code Gen (No API Key or mock key)');
-      provider = new MockAIProvider();
-    } else {
-      provider = new OpenAIProvider(apiKey);
-    }
-    
-    this.aiRepoService = new RepoAIService(provider);
-  }
+  ) {}
 
   private async retryAI<T>(
     operation: () => Promise<string>,
@@ -103,8 +91,9 @@ export class CodeGeneratorService {
     `;
 
     // 4. Call AI with retry
+    const aiService = await this.aiService.getAIService(userId);
     const codeData = await this.retryAI(
-      () => this.aiRepoService.generateAutomationCode(context),
+      () => aiService.generateAutomationCode(context),
       (data) => CodeGenSchema.parse(data)
     );
 

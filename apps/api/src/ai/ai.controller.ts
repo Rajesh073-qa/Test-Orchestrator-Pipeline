@@ -1,9 +1,8 @@
-import { Controller, Post, Body, UseGuards, Req, Param } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Param } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.strategy';
-
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
@@ -21,8 +20,9 @@ export class AIController {
   @Post('parse')
   async parseRequirement(
     @Body('rawInput') rawInput: string,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.aiService.parseRequirement(rawInput);
+    return this.aiService.parseRequirement(rawInput, user.userId);
   }
 
   @Post('test-plan')
@@ -42,21 +42,30 @@ export class AIController {
     return this.aiService.generateBulkTestCases(projectId, user.userId);
   }
 
+  // ── Quick Generators — now pass userId so per-user AI config is used ──────────
+
   @Post('quick/test-plan')
-  async quickTestPlan(@Body('text') text: string) {
-    return this.aiService.quickGenerateTestPlan(text);
+  async quickTestPlan(
+    @Body('text') text: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.aiService.quickGenerateTestPlan(text, user.userId);
   }
 
   @Post('quick/test-cases')
-  async quickTestCases(@Body('text') text: string) {
-    return this.aiService.quickGenerateTestCases(text);
+  async quickTestCases(
+    @Body('text') text: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.aiService.quickGenerateTestCases(text, user.userId);
   }
 
   @Post('quick/code')
   async quickCode(
     @Body('text') text: string,
-    @Body('framework') framework: string = 'playwright'
+    @Body('framework') framework: string = 'playwright',
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.aiService.quickGenerateCode(text, framework);
+    return this.aiService.quickGenerateCode(text, framework, user.userId);
   }
 }

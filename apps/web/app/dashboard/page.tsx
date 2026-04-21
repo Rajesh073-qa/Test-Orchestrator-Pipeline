@@ -153,9 +153,16 @@ export default function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-slate-900">Recent Projects</h2>
-            <Link href="/dashboard/projects" className="text-sm font-bold text-primary hover:underline flex items-center gap-1">
-              View all <ChevronRight className="w-4 h-4" />
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard/projects">
+                <Button size="sm" variant="outline" className="h-8 border-primary/20 text-primary hover:bg-primary/5 font-bold">
+                  <Plus className="w-4 h-4 mr-1" /> New Project
+                </Button>
+              </Link>
+              <Link href="/dashboard/projects" className="text-sm font-bold text-slate-400 hover:text-primary transition-colors flex items-center gap-1">
+                View all <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
           <div className="space-y-3">
             {loading ? (

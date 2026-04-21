@@ -8,5 +8,6 @@ import { AIConfigModule } from '../ai-config/ai-config.module';
   imports: [AIConfigModule],
   controllers: [AIController],
   providers: [AIService, PrismaService],
+  exports: [AIService],
 })
 export class AIModule {}

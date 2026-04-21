@@ -29,7 +29,7 @@ export class AIService {
   }
 
   /** Get an AI service scoped to the user's configured provider. Falls back to env key. */
-  private async getAIService(userId: string): Promise<RepoAIService> {
+  public async getAIService(userId: string): Promise<RepoAIService> {
     try {
       return await this.aiConfigService.buildAIService(userId);
     } catch {
@@ -99,12 +99,13 @@ export class AIService {
     return savedTestCases;
   }
 
-  async parseRequirement(rawInput: string) {
+  async parseRequirement(rawInput: string, userId?: string) {
     if (!rawInput || rawInput.trim().length < 10) {
       throw new BadRequestException('Input is too short to be a valid requirement.');
     }
 
-    const rawResponse = await this.fallbackAIService.parseRequirement(rawInput);
+    const aiService = userId ? await this.getAIService(userId) : this.fallbackAIService;
+    const rawResponse = await aiService.parseRequirement(rawInput);
     try {
       return JSON.parse(rawResponse);
     } catch (e) {
