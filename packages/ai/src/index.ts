@@ -6,3 +6,4 @@ export * from './providers/groq.provider';
 export * from './providers/gemini.provider';
 export * from './providers/mistral.provider';
 export * from './providers/openrouter.provider';
+export * from './providers/ollama.provider';

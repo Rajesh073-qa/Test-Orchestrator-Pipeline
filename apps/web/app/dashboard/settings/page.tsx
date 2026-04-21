@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import JiraIntegration from '@/features/jira/components/jira-integration';
 import { useToast } from '@/components/toast';
 
-const PROVIDERS: Record<string, { label: string; color: string; docsUrl: string; models: { id: string; label: string }[] }> = {
+const PROVIDERS: Record<string, { label: string; color: string; docsUrl?: string; models: { id: string; label: string }[] }> = {
   openai: {
     label: 'OpenAI',
     color: 'bg-emerald-500',
@@ -61,10 +61,20 @@ const PROVIDERS: Record<string, { label: string; color: string; docsUrl: string;
       { id: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
     ],
   },
+  ollama: {
+    label: 'Ollama (Local AI)',
+    color: 'bg-slate-900',
+    models: [
+      { id: 'llama3', label: 'Llama 3' },
+      { id: 'mistral', label: 'Mistral' },
+      { id: 'codellama', label: 'Code Llama' },
+      { id: 'phi3', label: 'Phi-3' },
+      { id: 'gemma', label: 'Gemma' },
+    ],
+  },
   mock: {
     label: 'Mock AI (No API Key)',
     color: 'bg-slate-400',
-    docsUrl: '',
     models: [{ id: 'mock', label: 'Mock Responses (Development Only)' }],
   },
 };
@@ -77,6 +87,7 @@ export default function SettingsPage() {
   const [selectedProvider, setSelectedProvider] = useState('groq');
   const [selectedModel, setSelectedModel] = useState('llama-3.3-70b-versatile');
   const [apiKey, setApiKey] = useState('');
+  const [baseUrl, setBaseUrl] = useState('http://localhost:11434');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -87,8 +98,8 @@ export default function SettingsPage() {
       setCurrentConfig(data);
       if (data.configured) {
         setSelectedProvider(data.provider);
-        // Preselect first model for this provider
-        setSelectedModel(PROVIDERS[data.provider]?.models[0]?.id || 'mock');
+        setSelectedModel(data.model);
+        if (data.baseUrl) setBaseUrl(data.baseUrl);
       }
     } catch (err) {
       console.error(err);
@@ -113,7 +124,12 @@ export default function SettingsPage() {
     }
     setSaving(true);
     try {
-      const { data } = await api.post('/ai-config', { provider: selectedProvider, model: selectedModel, apiKey: selectedProvider === 'mock' ? 'mock' : apiKey });
+      const { data } = await api.post('/ai-config', { 
+        provider: selectedProvider, 
+        model: selectedModel, 
+        apiKey: (selectedProvider === 'mock' || selectedProvider === 'ollama') ? 'not-needed' : apiKey,
+        baseUrl: selectedProvider === 'ollama' ? baseUrl : undefined
+      });
       toast({ type: 'success', title: '✅ AI Provider Saved', message: data.message });
       setApiKey('');
       await fetchConfig();
@@ -216,7 +232,7 @@ export default function SettingsPage() {
             </div>
 
             {/* API Key Field */}
-            {selectedProvider !== 'mock' && (
+            {selectedProvider !== 'mock' && selectedProvider !== 'ollama' && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
@@ -237,6 +253,25 @@ export default function SettingsPage() {
                 />
                 <p className="text-xs text-slate-400">
                   🔒 Keys are encrypted with AES-256 before storage. Never exposed in responses.
+                </p>
+              </div>
+            )}
+
+            {/* Ollama Base URL Field */}
+            {selectedProvider === 'ollama' && (
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                  🌐 Ollama Base URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="http://localhost:11434"
+                  className="w-full h-10 px-3 rounded-lg border bg-white focus:ring-2 focus:ring-primary outline-none text-sm font-mono"
+                  value={baseUrl}
+                  onChange={e => setBaseUrl(e.target.value)}
+                />
+                <p className="text-xs text-slate-400">
+                  Ensure Ollama is running and your model is pulled (e.g. <code>ollama pull llama3</code>).
                 </p>
               </div>
             )}

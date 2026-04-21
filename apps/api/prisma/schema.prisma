@@ -112,9 +112,10 @@ model Job {
 /// Per-user AI provider configuration — stores which AI model to use and the API key (encrypted).
 model AIConfig {
   id        String   @id @default(uuid())
-  provider  String   // openai | groq | gemini | mistral | openrouter | mock
+  provider  String   // openai | groq | gemini | mistral | openrouter | ollama | mock
   model     String   // e.g. gpt-4o, llama-3.3-70b-versatile, gemini-1.5-flash
   apiKey    String   // encrypted API key
+  baseUrl   String?  // Optional base URL for local models like Ollama
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())

@@ -9,6 +9,7 @@ import {
   GeminiProvider,
   MistralProvider,
   OpenRouterProvider,
+  OllamaProvider,
 } from '@repo/ai';
 import { AIProviderInterface } from '@repo/ai';
 
@@ -55,6 +56,16 @@ export const AI_PROVIDER_MODELS: Record<string, { label: string; models: { id: s
       { id: 'meta-llama/llama-3.1-70b-instruct', label: 'Llama 3.1 70B' },
     ],
   },
+  ollama: {
+    label: 'Ollama (Local)',
+    models: [
+      { id: 'llama3', label: 'Llama 3' },
+      { id: 'mistral', label: 'Mistral' },
+      { id: 'codellama', label: 'Code Llama' },
+      { id: 'phi3', label: 'Phi-3' },
+      { id: 'gemma', label: 'Gemma' },
+    ],
+  },
   mock: {
     label: 'Mock (No API key needed)',
     models: [{ id: 'mock', label: 'Mock AI' }],
@@ -81,18 +92,21 @@ export class AIConfigService {
       configured: true,
       provider: config.provider,
       model: config.model,
-      apiKeyMasked: `${'*'.repeat(Math.max(config.apiKey.length - 4, 8))}${config.apiKey.slice(-4)}`,
+      baseUrl: config.baseUrl,
+      apiKeyMasked: config.provider === 'ollama' || config.provider === 'mock' 
+        ? (config.provider === 'ollama' ? 'Not needed' : 'Mock Mode')
+        : `${'*'.repeat(Math.max(config.apiKey.length - 4, 8))}${config.apiKey.slice(-4)}`,
     };
   }
 
   /** Save or update user's AI config. Encrypts the API key before storing. */
-  async saveConfig(userId: string, provider: string, model: string, apiKey: string) {
-    const encrypted = provider === 'mock' ? 'mock' : this.cryptoService.encrypt(apiKey);
+  async saveConfig(userId: string, provider: string, model: string, apiKey: string, baseUrl?: string) {
+    const encrypted = (provider === 'mock' || provider === 'ollama') ? provider : this.cryptoService.encrypt(apiKey);
 
     await this.prisma.aIConfig.upsert({
       where: { userId },
-      create: { userId, provider, model, apiKey: encrypted },
-      update: { provider, model, apiKey: encrypted },
+      create: { userId, provider, model, apiKey: encrypted, baseUrl },
+      update: { provider, model, apiKey: encrypted, baseUrl },
     });
 
     return { success: true, message: `AI provider saved: ${AI_PROVIDER_MODELS[provider]?.label || provider} — ${model}` };
@@ -133,6 +147,9 @@ export class AIConfigService {
         break;
       case 'openrouter':
         provider = new OpenRouterProvider(apiKey, config.model);
+        break;
+      case 'ollama':
+        provider = new OllamaProvider(config.baseUrl || 'http://localhost:11434', config.model);
         break;
       default:
         provider = new MockAIProvider();

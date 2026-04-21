@@ -4,10 +4,24 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { JwtPayload } from '../auth/jwt.strategy';
 import { AIConfigService } from './ai-config.service';
 
+import { IsString, IsNotEmpty, IsOptional, IsUrl } from 'class-validator';
+
 class SaveConfigDto {
+  @IsString()
+  @IsNotEmpty()
   provider: string;
+
+  @IsString()
+  @IsNotEmpty()
   model: string;
+
+  @IsString()
+  @IsNotEmpty()
   apiKey: string;
+
+  @IsOptional()
+  @IsString()
+  baseUrl?: string;
 }
 
 @Controller('ai-config')
@@ -28,7 +42,7 @@ export class AIConfigController {
   @Post()
   @HttpCode(HttpStatus.OK)
   saveConfig(@Body() body: SaveConfigDto, @CurrentUser() user: JwtPayload) {
-    return this.aiConfigService.saveConfig(user.userId, body.provider, body.model, body.apiKey);
+    return this.aiConfigService.saveConfig(user.userId, body.provider, body.model, body.apiKey, body.baseUrl);
   }
 
   @Delete()
