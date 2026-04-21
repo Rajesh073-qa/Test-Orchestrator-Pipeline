@@ -23,4 +23,8 @@ export const jiraApi = {
     const { data } = await api.post(`/jira/stories/${projectId}`, { jiraProjectId });
     return data;
   },
+  getIssue: async (issueKey: string) => {
+    const { data } = await api.get(`/jira/issue/${encodeURIComponent(issueKey)}`);
+    return data;
+  },
 };

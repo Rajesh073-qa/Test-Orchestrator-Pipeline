@@ -193,7 +193,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               <CardDescription>{step.desc}</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="link" className="p-0 h-auto text-primary font-bold text-xs uppercase tracking-wider group">
+              <Button variant="ghost" className="p-0 h-auto text-primary font-bold text-xs uppercase tracking-wider group">
                 {step.action} <ChevronRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
               </Button>
             </CardContent>

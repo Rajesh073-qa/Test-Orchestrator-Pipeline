@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
     role: 'USER', // Default role
@@ -24,7 +25,7 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      await apiClient.post('/api/auth/register', formData);
+      await apiClient.post('/auth/register', formData);
       // Auto login after registration or redirect to login
       router.push('/login?registered=true');
     } catch (err: any) {
@@ -59,6 +60,23 @@ export default function RegisterPage() {
             )}
             
             <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    required
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-10 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="John Doe"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium leading-none">
                   Work Email

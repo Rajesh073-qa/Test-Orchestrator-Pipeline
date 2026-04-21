@@ -1,14 +1,17 @@
 'use client';
 
-import { LayoutDashboard, Beaker, Folder, Settings, LogOut, Menu, X, Activity, Zap } from "lucide-react";
+import { LayoutDashboard, Beaker, Folder, Settings, LogOut, Menu, X, Activity, Zap, Layout, Database, Code } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { name: 'Orchestrator', href: '/orchestrator', icon: Zap, badge: 'New' },
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Test Plan Gen', href: '/dashboard/generators/test-plan', icon: Layout, badge: 'AI' },
+  { name: 'Test Cases Gen', href: '/dashboard/generators/test-cases', icon: Database, badge: 'AI' },
+  { name: 'Code Gen', href: '/dashboard/generators/code', icon: Code, badge: 'AI' },
+  { name: 'Workflow Gen', href: '/dashboard/generators/workflow', icon: Zap, badge: 'New' },
   { name: 'Projects', href: '/dashboard/projects', icon: Folder },
   { name: 'Test Cases', href: '/dashboard/test-cases', icon: Beaker },
   { name: 'Jobs', href: '/dashboard/jobs', icon: Activity },

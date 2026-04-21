@@ -9,6 +9,18 @@ export const aiApi = {
     const { data } = await api.post(`/ai/test-cases/${userStoryId}`);
     return data;
   },
+  quickGenerateTestPlan: async (text: string) => {
+    const { data } = await api.post('/ai/quick/test-plan', { text });
+    return data;
+  },
+  quickGenerateTestCases: async (text: string) => {
+    const { data } = await api.post('/ai/quick/test-cases', { text });
+    return data;
+  },
+  quickGenerateCode: async (text: string, framework: string) => {
+    const { data } = await api.post('/ai/quick/code', { text, framework });
+    return data;
+  }
 };
 
 export const codeApi = {

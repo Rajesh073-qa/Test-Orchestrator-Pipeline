@@ -10,8 +10,9 @@ datasource db {
 model User {
   id          String   @id @default(uuid())
   email       String   @unique
+  name        String?
   password    String
-  role        Role
+  role        Role     @default(USER)
   createdAt   DateTime @default(now())
 
   jiraConnections JiraConnection[]
@@ -22,6 +23,8 @@ model User {
 enum Role {
   ADMIN
   USER
+  QA
+  VIEWER
 }
 
 model Project {

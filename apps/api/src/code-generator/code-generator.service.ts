@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { AIService as RepoAIService, OpenAIProvider } from '@repo/ai';
+import { AIService as RepoAIService, OpenAIProvider, MockAIProvider } from '@repo/ai';
 import { ConfigService } from '@nestjs/config';
 import { CodeGenSchema } from './validators/code-gen.schema';
 import { JobService } from '../common/job.service';
@@ -21,7 +21,15 @@ export class CodeGeneratorService {
 
 
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
-    const provider = new OpenAIProvider(apiKey || '');
+    
+    let provider;
+    if (!apiKey || apiKey === 'sk-xxx' || apiKey === 'mock') {
+      this.logger.warn('using Mock AI Provider for Code Gen (No API Key or mock key)');
+      provider = new MockAIProvider();
+    } else {
+      provider = new OpenAIProvider(apiKey);
+    }
+    
     this.aiRepoService = new RepoAIService(provider);
   }
 

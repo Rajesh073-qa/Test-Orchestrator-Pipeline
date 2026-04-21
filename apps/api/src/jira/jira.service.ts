@@ -280,4 +280,32 @@ export class JiraService {
       baseUrl: connection.baseUrl,
     };
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 5. GET SINGLE ISSUE — For stateless quick generators
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  async getIssue(issueKey: string, userId: string) {
+    const connection = await this.getConnectionOrThrow(userId);
+
+    const issue = await this.jiraClient.getIssue(
+      {
+        baseUrl: connection.baseUrl,
+        email: connection.email,
+        apiToken: connection.apiToken, // Already decrypted
+      },
+      issueKey,
+    );
+
+    const title = issue.fields.summary ?? '(No summary)';
+    const description = this.extractPlainText(issue.fields.description);
+    const acceptanceCriteria = this.extractAcceptanceCriteria(issue.fields);
+
+    return {
+      jiraId: issue.key,
+      title,
+      description,
+      acceptanceCriteria,
+    };
+  }
 }

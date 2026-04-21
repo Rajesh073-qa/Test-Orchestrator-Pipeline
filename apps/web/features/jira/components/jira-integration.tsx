@@ -154,7 +154,7 @@ export default function JiraIntegration() {
                 <li>Click <b>Create API token</b> and give it a name (e.g. "Orchestor").</li>
                 <li>Copy the token and paste it here.</li>
               </ol>
-              <Button variant="link" className="text-primary p-0 h-auto" asChild>
+              <Button variant="ghost" className="text-primary p-0 h-auto" asChild>
                 <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noreferrer">
                    Atlassian Token Management <RefreshCw className="w-3 h-3 ml-1" />
                 </a>

@@ -11,6 +11,63 @@ export class OpenAIProvider implements AIProviderInterface {
   }
 
   private async callOpenAI(prompt: string, systemMessage: string): Promise<string> {
+    if (this.openai.apiKey === 'sk-xxx') {
+      console.warn('⚠️ OpenAI Simulation Mode active (sk-xxx key)');
+      
+      // Return appropriate mocks based on system message content
+      if (systemMessage.includes('Product Architect')) {
+        return JSON.stringify({
+          title: "Automated User Login",
+          description: "As a registered user, I want to login with my credentials so that I can access my dashboard.",
+          acceptanceCriteria: ["Valid email/password", "Error message on invalid", "Redirect to /dashboard"],
+          notes: "Simulation data"
+        });
+      }
+      
+      if (systemMessage.includes('QA Architect')) {
+        return JSON.stringify({
+          title: "Test Plan: Automated User Login",
+          objective: "To verify that users can securely authenticate using valid credentials.",
+          scope: {
+            inScope: ["Login page", "API endpoints", "Session management"],
+            outOfScope: ["Password recovery flow", "Social login integration"]
+          },
+          strategy: "Automated functional testing using Playwright with POM.",
+          risks: ["Slow network latency", "Browser compatibility issues"],
+          environment: "Staging/QA Environment",
+          entryCriteria: "Stable build deployed to QA.",
+          exitCriteria: "All priority High and Medium tests passing."
+        });
+      }
+
+      if (systemMessage.includes('QA Engineer')) {
+        return JSON.stringify([
+          { 
+            title: "Successful login with valid credentials", 
+            description: "Verify that a user can login with a valid email and password.",
+            type: "Positive", 
+            priority: "High",
+            steps: [
+              { stepNumber: 1, action: "Navigate to /login", expectedResult: "Login page visible" },
+              { stepNumber: 2, action: "Enter valid credentials and click Login", expectedResult: "Redirected to dashboard" }
+            ]
+          },
+          { 
+            title: "Failed login with invalid password", 
+            description: "Verify that login fails with an incorrect password.",
+            type: "Negative", 
+            priority: "Medium",
+            steps: [
+              { stepNumber: 1, action: "Navigate to /login", expectedResult: "Login page visible" },
+              { stepNumber: 2, action: "Enter invalid password and click Login", expectedResult: "Error message 'Invalid credentials' shown" }
+            ]
+          }
+        ]);
+      }
+
+      return JSON.stringify({ code: "// Simulated Playwright code\nawait page.goto('/login');" });
+    }
+
     const response = await this.openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [

@@ -33,4 +33,30 @@ export class AIController {
   ) {
     return this.aiService.generateTestPlan(projectId, user.userId, structuredData);
   }
+
+  @Post('test-cases/bulk/:projectId')
+  async generateBulkTestCases(
+    @Param('projectId') projectId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.aiService.generateBulkTestCases(projectId, user.userId);
+  }
+
+  @Post('quick/test-plan')
+  async quickTestPlan(@Body('text') text: string) {
+    return this.aiService.quickGenerateTestPlan(text);
+  }
+
+  @Post('quick/test-cases')
+  async quickTestCases(@Body('text') text: string) {
+    return this.aiService.quickGenerateTestCases(text);
+  }
+
+  @Post('quick/code')
+  async quickCode(
+    @Body('text') text: string,
+    @Body('framework') framework: string = 'playwright'
+  ) {
+    return this.aiService.quickGenerateCode(text, framework);
+  }
 }

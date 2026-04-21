@@ -80,9 +80,12 @@ export class ProjectService {
   // 3. GET ONE (ownership enforced)
   // ─────────────────────────────────────────────────────────────────────────────
 
-  async findOne(projectId: string, userId: string): Promise<ProjectResponse> {
-    const project = await this.findAndVerifyOwnership(projectId, userId);
-    return { id: project.id, name: project.name, createdAt: project.createdAt };
+  async findOne(projectId: string, userId: string): Promise<any> {
+    await this.findAndVerifyOwnership(projectId, userId);
+    return this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: { userStories: true },
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -123,5 +126,17 @@ export class ProjectService {
 
     this.logger.log(`Project "${projectId}" deleted by user "${userId}"`);
     return { message: `Project "${projectId}" deleted successfully` };
+  }
+
+  async createStory(projectId: string, dto: any, userId: string) {
+    await this.findAndVerifyOwnership(projectId, userId);
+    return this.prisma.userStory.create({
+      data: {
+        title: dto.title,
+        description: dto.description,
+        acceptanceCriteria: dto.acceptanceCriteria,
+        projectId,
+      },
+    });
   }
 }

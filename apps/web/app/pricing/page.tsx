@@ -70,7 +70,7 @@ export default function PricingPage() {
               <Link href="/register" className="block">
                 <Button 
                   className={`w-full h-12 rounded-xl font-bold text-lg ${plan.popular ? 'bg-primary' : 'variant-outline'}`}
-                  variant={plan.popular ? 'default' : 'outline'}
+                  variant={plan.popular ? 'primary' : 'outline'}
                 >
                   {plan.cta}
                 </Button>

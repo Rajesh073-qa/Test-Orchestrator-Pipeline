@@ -16,7 +16,7 @@ import { PrismaService } from '../prisma.service';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: '7d', // Token valid for 7 days — adjust for production
+          expiresIn: '1h', // Token valid for 1 hour
         },
       }),
     }),

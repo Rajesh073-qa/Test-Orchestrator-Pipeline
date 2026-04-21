@@ -78,4 +78,17 @@ export class JiraController {
   ) {
     return this.jiraService.syncStories(projectId, jiraProjectKey, user.userId);
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GET /api/jira/issue/:issueKey
+  // Fetch a single Jira issue dynamically to be used as context for Quick Generators.
+  // Example: GET /api/jira/issue/PROJ-123
+  // ─────────────────────────────────────────────────────────────────────────────
+  @Get('issue/:issueKey')
+  getIssue(
+    @Param('issueKey') issueKey: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.jiraService.getIssue(issueKey, user.userId);
+  }
 }

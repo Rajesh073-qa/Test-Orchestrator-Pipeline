@@ -7,6 +7,7 @@ export interface Job {
   progress: number;
   total: number;
   result?: string;
+  lastError?: string;
   createdAt: string;
   updatedAt: string;
 }

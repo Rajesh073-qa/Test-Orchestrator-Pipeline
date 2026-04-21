@@ -177,6 +177,21 @@ export class JiraClient {
   }
 
   /**
+   * Fetch a single Jira Issue by its key.
+   * GET /rest/api/3/issue/:issueKey
+   */
+  async getIssue(
+    creds: JiraCredentials,
+    issueKey: string,
+  ): Promise<JiraIssue> {
+    const result = await this.jiraFetch<JiraIssue>(
+      creds,
+      `/rest/api/3/issue/${encodeURIComponent(issueKey)}`,
+    );
+    return result;
+  }
+
+  /**
    * Validate credentials without fetching full data.
    * Uses /rest/api/3/myself — cheap call that returns 401 on bad creds.
    */

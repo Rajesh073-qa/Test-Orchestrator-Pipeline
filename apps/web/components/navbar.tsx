@@ -26,8 +26,8 @@ export default function Navbar() {
 
   const navLinks = isLoggedIn 
     ? [
-        { name: 'Orchestrator', href: '/orchestrator', icon: Zap },
-        { name: 'Jobs', href: '/jobs', icon: Activity },
+        { name: 'Dashboard', href: '/dashboard', icon: Zap },
+        { name: 'Jobs', href: '/dashboard/jobs', icon: Activity },
       ]
     : [
         { name: 'Home', href: '/' },
@@ -40,7 +40,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2 group">
+            <Link href={isLoggedIn ? "/dashboard" : "/"} className="flex items-center gap-2 group">
               <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 transition-transform">
                 <Workflow className="text-white w-6 h-6" />
               </div>

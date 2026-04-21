@@ -85,4 +85,12 @@ export class ProjectController {
   ) {
     return this.projectService.remove(id, user.userId);
   }
+  @Post(':id/stories')
+  createStory(
+    @Param('id') projectId: string,
+    @Body() dto: { title: string; description: string; acceptanceCriteria: string },
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.projectService.createStory(projectId, dto, user.userId);
+  }
 }

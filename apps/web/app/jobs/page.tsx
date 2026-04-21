@@ -94,12 +94,23 @@ function JobCard({ job }: { job: Job }) {
                 </span>
                 <span className="text-sm font-bold text-slate-900">{percentage}%</span>
             </div>
-            <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden mb-4">
                 <div 
                   className={cn("h-full transition-all duration-1000 ease-out rounded-full", config.accent)}
                   style={{ width: `${percentage}%` }}
                 />
             </div>
+            {job.status === 'FAILED' && (
+              <div className="p-4 bg-destructive/10 rounded-xl border border-destructive/20 text-sm text-destructive font-medium mt-4">
+                <p>Error Details:</p>
+                <p className="mt-1 opacity-80">{job.lastError || "An unknown error occurred during execution."}</p>
+                {job.result && (
+                  <pre className="mt-2 text-xs overflow-auto max-h-32 bg-destructive/5 p-2 rounded">
+                    {JSON.stringify(JSON.parse(job.result), null, 2)}
+                  </pre>
+                )}
+              </div>
+            )}
         </div>
       </CardContent>
     </Card>
