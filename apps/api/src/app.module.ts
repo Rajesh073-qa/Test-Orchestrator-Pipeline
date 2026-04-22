@@ -16,6 +16,8 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
 
+import { AdminModule } from './admin/admin.module';
+
 @Module({
   imports: [
     // Make ConfigModule global so every module can inject ConfigService
@@ -45,6 +47,7 @@ import { BullModule } from '@nestjs/bullmq';
     CommonModule,
     AIConfigModule,
     PaymentModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

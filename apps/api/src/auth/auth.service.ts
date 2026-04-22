@@ -152,7 +152,9 @@ export class AuthService {
       select: {
         id: true,
         email: true,
+        name: true,
         role: true,
+        is2FAEnabled: true,
         createdAt: true,
         // password is explicitly excluded via select
       },
