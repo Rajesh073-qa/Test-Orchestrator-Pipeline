@@ -4,6 +4,7 @@ export interface Project {
   id: string;
   name: string;
   createdAt: string;
+  userStories?: any[];
 }
 
 export const projectApi = {
@@ -17,5 +18,12 @@ export const projectApi = {
   },
   deleteProject: async (id: string): Promise<void> => {
     await api.delete(`/projects/${id}`);
+  },
+  updateProject: async (id: string, name: string, description?: string): Promise<Project> => {
+    const { data } = await api.patch(`/projects/${id}`, { name, description });
+    return data;
+  },
+  deleteStory: async (storyId: string): Promise<void> => {
+    await api.delete(`/projects/stories/${storyId}`);
   },
 };

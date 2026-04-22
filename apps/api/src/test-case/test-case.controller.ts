@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Delete, Param, Body, UseGuards } from '@nestjs/common';
 import { TestCaseService } from './test-case.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -26,5 +26,10 @@ export class TestCaseController {
     @CurrentUser() user: JwtPayload
   ) {
     return this.testCaseService.update(id, user.userId, data);
+  }
+
+  @Delete(':id')
+  delete(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.testCaseService.delete(id, user.userId);
   }
 }

@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/services/api';
-import { Settings, Bot, CheckCircle2, Loader2, Trash2, Key, ExternalLink, ShieldCheck, CreditCard } from 'lucide-react';
+import { Settings, Bot, CheckCircle2, Loader2, Trash2, Key, ExternalLink, ShieldCheck, CreditCard, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import JiraIntegration from '@/features/jira/components/jira-integration';
 import TwoFactorSettings from './components/TwoFactorSettings';
 import { useToast } from '@/components/toast';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const PROVIDERS: Record<string, { label: string; color: string; docsUrl?: string; models: { id: string; label: string }[] }> = {
   openai: {
@@ -263,6 +264,21 @@ export default function SettingsPage() {
               <ShieldCheck className="w-5 h-5" /> Security
             </h2>
             <TwoFactorSettings />
+          </div>
+
+          <div className="space-y-6">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              <Sun className="w-5 h-5" /> Personalization
+            </h2>
+            <Card className="border-none shadow-xl">
+              <CardContent className="p-6">
+                <p className="text-sm font-bold text-slate-700 mb-4">Application Theme</p>
+                <ThemeToggle />
+                <p className="text-[10px] text-slate-400 mt-4 leading-relaxed font-medium">
+                  Switch between Light, Dark, or follow your System preference.
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           <div className="space-y-6">

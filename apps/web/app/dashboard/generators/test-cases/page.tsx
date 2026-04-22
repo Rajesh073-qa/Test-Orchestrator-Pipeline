@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { aiApi } from "@/services/ai-code-api";
 import { JiraContextInput } from "@/components/jira-context-input";
+import { useSubscription } from "@/hooks/useSubscription";
+import ProGate from "@/components/ProGate";
 
 interface TestCaseStep {
   stepNumber: number;
@@ -40,6 +42,7 @@ const TestCasesGeneratorPage = dynamic(() => Promise.resolve(function TestCasesG
   const [testCases, setTestCases] = useState<TestCase[] | null>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const { status, loading: subLoading, refresh: refreshSub } = useSubscription();
 
   const handleGenerate = async () => {
     if (!input.trim()) return;
@@ -50,8 +53,13 @@ const TestCasesGeneratorPage = dynamic(() => Promise.resolve(function TestCasesG
       const res = await aiApi.quickGenerateTestCases(input);
       console.log('API RESPONSE (Test Cases):', res);
       setTestCases(Array.isArray(res) ? res : []);
+      refreshSub();
     } catch (err: any) {
       console.error(err);
+      if (err?.response?.status === 403) {
+        refreshSub();
+        return;
+      }
       setError(err?.response?.data?.message || 'Failed to generate test cases. Please try again.');
     } finally {
       setLoading(false);
@@ -87,6 +95,7 @@ const TestCasesGeneratorPage = dynamic(() => Promise.resolve(function TestCasesG
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <ProGate status={status} loading={subLoading} showTrialBadge>
       {/* Header */}
       <div>
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
@@ -193,6 +202,7 @@ const TestCasesGeneratorPage = dynamic(() => Promise.resolve(function TestCasesG
           ))}
         </div>
       )}
+      </ProGate>
     </div>
   );
 }), { ssr: false });

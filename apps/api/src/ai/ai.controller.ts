@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Param } from '@nestjs/common';
 import { AIService } from './ai.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -9,7 +9,12 @@ import type { JwtPayload } from '../auth/jwt.strategy';
 export class AIController {
   constructor(private readonly aiService: AIService) {}
 
-  @Post('test-cases/:userStoryId')
+  /** GET /ai/trial-status — returns FREE_TRIAL_AVAILABLE / FREE_TRIAL_EXHAUSTED / PRO / UNLIMITED */
+  @Get('trial-status')
+  async getTrialStatus(@CurrentUser() user: JwtPayload) {
+    return this.aiService.getTrialStatus(user.userId);
+  }
+
   async generateTestCases(
     @Param('userStoryId') userStoryId: string,
     @CurrentUser() user: JwtPayload,

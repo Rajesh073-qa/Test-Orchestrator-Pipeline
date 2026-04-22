@@ -12,6 +12,8 @@ export const TestPlanSchema = z.object({
   environment: z.string().min(1),
   entryCriteria: z.string().min(1),
   exitCriteria: z.string().min(1),
+  testSchedule: z.string().optional(),
+  defectManagementProcess: z.string().optional(),
 });
 
 export type TestPlanAIResponse = z.infer<typeof TestPlanSchema>;

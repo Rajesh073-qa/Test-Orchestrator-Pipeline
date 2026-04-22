@@ -45,7 +45,7 @@ export default function RegisterPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <CardTitle className="text-3xl font-bold tracking-tight">Join Orchestor</CardTitle>
+            <CardTitle className="text-3xl font-bold tracking-tight">Join AuraTest</CardTitle>
             <CardDescription className="text-slate-500">
               Create your account to start automating your QA
             </CardDescription>

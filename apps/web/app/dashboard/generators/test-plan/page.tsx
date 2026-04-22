@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { aiApi } from "@/services/ai-code-api";
 import { JiraContextInput } from "@/components/jira-context-input";
+import { useSubscription } from "@/hooks/useSubscription";
+import ProGate from "@/components/ProGate";
 
 interface TestPlan {
   title: string;
@@ -17,6 +19,8 @@ interface TestPlan {
   environment: string;
   entryCriteria: string;
   exitCriteria: string;
+  testSchedule?: string;
+  defectManagementProcess?: string;
 }
 
 const TestPlanGeneratorPage = dynamic(() => Promise.resolve(function TestPlanGeneratorPage() {
@@ -25,6 +29,7 @@ const TestPlanGeneratorPage = dynamic(() => Promise.resolve(function TestPlanGen
   const [testPlan, setTestPlan] = useState<TestPlan | null>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const { status, loading: subLoading, refresh: refreshSub } = useSubscription();
 
   const handleGenerate = async () => {
     if (!input.trim()) return;
@@ -35,8 +40,14 @@ const TestPlanGeneratorPage = dynamic(() => Promise.resolve(function TestPlanGen
       const res = await aiApi.quickGenerateTestPlan(input);
       console.log('API RESPONSE (Test Plan):', res);
       setTestPlan(res);
+      refreshSub(); // re-check trial status after successful generation
     } catch (err: any) {
       console.error(err);
+      // Handle trial exhausted
+      if (err?.response?.status === 403) {
+        refreshSub();
+        return;
+      }
       setError(err?.response?.data?.message || 'Failed to generate test plan. Please try again.');
     } finally {
       setLoading(false);
@@ -99,6 +110,7 @@ const TestPlanGeneratorPage = dynamic(() => Promise.resolve(function TestPlanGen
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <ProGate status={status} loading={subLoading} showTrialBadge>
       {/* Header */}
       <div>
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
@@ -174,11 +186,18 @@ const TestPlanGeneratorPage = dynamic(() => Promise.resolve(function TestPlanGen
               <Section title="Exit Criteria" content={testPlan.exitCriteria} />
             </div>
 
+            {/* Advanced Enterprise Sections */}
+            <div className="grid sm:grid-cols-2 gap-6">
+              {testPlan.testSchedule && <Section title="Test Schedule" content={testPlan.testSchedule} />}
+              {testPlan.defectManagementProcess && <Section title="Defect Management" content={testPlan.defectManagementProcess} />}
+            </div>
+
             {/* Risks */}
             <ListSection title="⚠️ Risks" items={testPlan.risks} color="amber" />
           </CardContent>
         </Card>
       )}
+      </ProGate>
     </div>
   );
 }), { ssr: false });

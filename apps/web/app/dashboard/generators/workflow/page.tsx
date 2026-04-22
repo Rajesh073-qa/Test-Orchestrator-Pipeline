@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { aiApi } from "@/services/ai-code-api";
 import { JiraContextInput } from "@/components/jira-context-input";
+import { useSubscription } from "@/hooks/useSubscription";
+import ProGate from "@/components/ProGate";
 
 interface TestPlan {
   title: string;
@@ -53,6 +55,7 @@ const WorkflowGeneratorPage = dynamic(() => Promise.resolve(function WorkflowGen
 
   const [activeTab, setActiveTab] = useState<Step>('plan');
   const [copied, setCopied] = useState(false);
+  const { status, loading: subLoading, refresh: refreshSub } = useSubscription();
 
   const generateAll = async () => {
     if (!input.trim()) return;
@@ -74,18 +77,23 @@ const WorkflowGeneratorPage = dynamic(() => Promise.resolve(function WorkflowGen
       setCasesResult(Array.isArray(cases) ? cases : []);
 
       setCurrentStep('code');
-      const code = await aiApi.quickGenerateCode(input, framework);
-      console.log('API RESPONSE (Code):', code);
-      setCodeResult(code);
-
+      const codeRes = await aiApi.quickGenerateCode(input, framework);
+      console.log('API RESPONSE (Code):', codeRes);
+      setCodeResult(codeRes);
+      
+      refreshSub();
       setCurrentStep(null);
       setActiveTab('plan');
     } catch (err: any) {
       console.error(err);
-      setError(err?.response?.data?.message || 'Generation failed. Please try again.');
+      if (err?.response?.status === 403) {
+        refreshSub();
+        return;
+      }
+      setError(err?.response?.data?.message || 'Workflow generation failed. Please try again.');
     } finally {
-      setLoading(false);
       setCurrentStep(null);
+      setLoading(false);
     }
   };
 
@@ -125,6 +133,7 @@ const WorkflowGeneratorPage = dynamic(() => Promise.resolve(function WorkflowGen
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <ProGate status={status} loading={subLoading} showTrialBadge>
       {/* Header */}
       <div>
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
@@ -314,6 +323,7 @@ const WorkflowGeneratorPage = dynamic(() => Promise.resolve(function WorkflowGen
           )}
         </div>
       </div>
+      </ProGate>
     </div>
   );
 }), { ssr: false });

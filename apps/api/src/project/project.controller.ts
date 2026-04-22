@@ -93,4 +93,21 @@ export class ProjectController {
   ) {
     return this.projectService.createStory(projectId, dto, user.userId);
   }
+
+  @Delete('stories/:storyId')
+  deleteStory(
+    @Param('storyId') storyId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.projectService.deleteStory(storyId, user.userId);
+  }
+
+  @Patch('stories/:storyId')
+  updateStory(
+    @Param('storyId') storyId: string,
+    @Body() dto: any,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.projectService.updateStory(storyId, dto, user.userId);
+  }
 }

@@ -81,27 +81,60 @@ export class OpenAIProvider implements AIProviderInterface {
   }
 
   async generateTestPlan(storyContext: string): Promise<string> {
-    const systemMessage = `You are a world-class Senior QA Architect. 
-    Create a highly professional, enterprise-grade Test Plan. 
-    Be thorough and technical. Analyze risks deeply.
-    Return ONLY valid JSON with fields: { title, objective, scope: { inScope: string[], outOfScope: string[] }, strategy, risks: string[], environment, entryCriteria, exitCriteria }.`;
+    const systemMessage = `You are a world-class Senior QA Architect with decades of experience in enterprise systems.
+    Create a highly professional, exhaustive, and detailed Test Plan. 
+    Analyze the technical architecture, business risks, and operational constraints.
+    The objective should be strategic. The scope must be crystal clear.
+    The strategy should include layers of testing (Unit, Integration, E2E, Performance, Security).
+    Risks must include technical debt, scalability, and integration failures.
+    Return ONLY valid JSON with fields: { 
+      title, 
+      objective, 
+      scope: { inScope: string[], outOfScope: string[] }, 
+      strategy, 
+      risks: string[], 
+      environment, 
+      entryCriteria, 
+      exitCriteria,
+      testSchedule: string,
+      defectManagementProcess: string
+    }.`;
     
     return this.callOpenAI(storyContext, systemMessage);
   }
 
   async generateTestCases(storyContext: string): Promise<string> {
-    const systemMessage = `You are an expert Senior QA Engineer specializing in high-coverage testing.
-    Analyze the provided story and generate an exhaustive set of Positive, Negative, and technical Edge Case test cases.
-    Each test case must have a deep description and precise, atomic steps.
-    Return ONLY valid JSON as an array of objects: { title, description, type: "Positive"|"Negative"|"Edge", priority: "High"|"Medium"|"Low", steps: [{ stepNumber, action, expectedResult }] }.`;
+    const systemMessage = `You are an expert Senior QA Engineer specializing in high-coverage, mission-critical testing.
+    Analyze the provided context and generate an exhaustive set of Positive, Negative, Boundary, and technical Edge Case test cases.
+    Each test case must include:
+    - exhaustive description
+    - preConditions (string)
+    - priority (High/Medium/Low)
+    - type (Functional/Non-Functional/Security/Performance)
+    - dataScenarios (string[])
+    - precise, atomic steps with expected results.
+    Return ONLY valid JSON as an array of objects: { 
+      title, 
+      description, 
+      preConditions,
+      type, 
+      priority, 
+      dataScenarios: string[],
+      steps: [{ stepNumber, action, expectedResult }] 
+    }.`;
     
     return this.callOpenAI(storyContext, systemMessage);
   }
 
   async generateAutomationCode(testCaseContext: string): Promise<string> {
     const systemMessage = `You are an elite Senior Automation Architect. 
-    Generate clean, maintainable automation code using the Page Object Model (POM) pattern.
-    If multiple pages are involved, use separate objects. Include detailed comments.
+    Generate clean, enterprise-grade, maintainable automation code using the Page Object Model (POM) pattern.
+    The code must follow industry best practices:
+    - Robust selectors (data-testid preferred).
+    - Auto-waiting and resilience.
+    - Detailed JSDoc comments for every method.
+    - Proper error handling and logging.
+    If multiple pages are involved, use separate objects. 
     Return ONLY valid JSON with 'testFile' (full test implementation) and 'pageObject' (reusable elements/methods) fields.`;
     
     return this.callOpenAI(testCaseContext, systemMessage);
@@ -120,5 +153,16 @@ export class OpenAIProvider implements AIProviderInterface {
     }`;
     
     return this.callOpenAI(rawInput, systemMessage);
+  }
+  async generateCustomResponse(prompt: string, systemMessage: string): Promise<string> {
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: prompt },
+      ],
+    });
+
+    return response.choices[0].message.content || '';
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Post, Delete, UseGuards } from '@nestjs/common';
 import { JobService } from '../common/job.service';
 
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -23,6 +23,11 @@ export class JobController {
   @Post(':id/cancel')
   async cancelJob(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.jobService.cancelJob(id, user.userId);
+  }
+
+  @Delete(':id')
+  async deleteJob(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.jobService.deleteJob(id, user.userId);
   }
 }
 

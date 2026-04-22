@@ -84,7 +84,11 @@ export class ProjectService {
     await this.findAndVerifyOwnership(projectId, userId);
     return this.prisma.project.findUnique({
       where: { id: projectId },
-      include: { userStories: true },
+      include: { 
+        userStories: {
+          include: { testCases: true }
+        } 
+      },
     });
   }
 
@@ -137,6 +141,37 @@ export class ProjectService {
         acceptanceCriteria: dto.acceptanceCriteria,
         projectId,
       },
+    });
+  }
+
+  async updateStory(storyId: string, dto: any, userId: string) {
+    const story = await this.prisma.userStory.findUnique({
+      where: { id: storyId },
+      include: { project: true },
+    });
+    if (!story || story.project.userId !== userId) {
+      throw new NotFoundException('Story not found or access denied');
+    }
+    return this.prisma.userStory.update({
+      where: { id: storyId },
+      data: {
+        title: dto.title ?? story.title,
+        description: dto.description ?? story.description,
+        acceptanceCriteria: dto.acceptanceCriteria ?? story.acceptanceCriteria,
+      },
+    });
+  }
+
+  async deleteStory(storyId: string, userId: string) {
+    const story = await this.prisma.userStory.findUnique({
+      where: { id: storyId },
+      include: { project: true },
+    });
+    if (!story || story.project.userId !== userId) {
+      throw new NotFoundException('Story not found or access denied');
+    }
+    return this.prisma.userStory.delete({
+      where: { id: storyId },
     });
   }
 }

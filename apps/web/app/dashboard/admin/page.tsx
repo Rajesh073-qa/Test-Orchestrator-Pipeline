@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useToast } from '@/components/toast';
 
 interface SystemStats {
   totalUsers: number;
@@ -32,6 +33,7 @@ interface UserRow {
 }
 
 export default function AdminDashboard() {
+  const { toast } = useToast();
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [jobs, setJobs] = useState<any[]>([]);
@@ -184,7 +186,12 @@ export default function AdminDashboard() {
                       <td className="px-4 py-3 text-xs text-slate-600 font-bold">{user._count?.projects ?? 0}</td>
                       <td className="px-4 py-3 text-xs text-slate-400">{new Date(user.createdAt).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 w-7 p-0 text-slate-400 hover:text-red-500 hover:bg-red-50"
+                          onClick={() => toast({ type: 'info', title: 'Coming Soon', message: 'User suspension will be available in the next release.' })}
+                        >
                           <Ban className="w-3.5 h-3.5" />
                         </Button>
                       </td>

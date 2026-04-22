@@ -307,6 +307,17 @@ jobs:
     };
   }
 
+  async deleteScript(id: string, userId: string) {
+    const script = await this.prisma.automationScript.findUnique({
+      where: { id },
+      include: { testCase: { include: { userStory: { include: { project: true } } } } }
+    });
+    if (!script || script.testCase.userStory.project.userId !== userId) {
+      throw new NotFoundException('Script not found or access denied');
+    }
+    return this.prisma.automationScript.delete({ where: { id } });
+  }
+
   async exportProject(projectId: string, userId: string): Promise<NodeJS.ReadableStream> {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },

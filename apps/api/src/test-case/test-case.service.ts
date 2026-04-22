@@ -52,4 +52,11 @@ export class TestCaseService {
 
     });
   }
+
+  async delete(id: string, userId: string) {
+    const testCase = await this.findOne(id, userId);
+    return this.prisma.testCase.delete({
+      where: { id }
+    });
+  }
 }

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { aiApi } from "@/services/ai-code-api";
 import { JiraContextInput } from "@/components/jira-context-input";
+import { useSubscription } from "@/hooks/useSubscription";
+import ProGate from "@/components/ProGate";
 
 interface CodeResult {
   testFile: string;
@@ -21,6 +23,7 @@ const CodeGeneratorPage = dynamic(() => Promise.resolve(function CodeGeneratorPa
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'pageObject' | 'testFile'>('pageObject');
   const [copied, setCopied] = useState(false);
+  const { status, loading: subLoading, refresh: refreshSub } = useSubscription();
 
   const handleGenerate = async () => {
     if (!input.trim()) return;
@@ -32,8 +35,13 @@ const CodeGeneratorPage = dynamic(() => Promise.resolve(function CodeGeneratorPa
       console.log('API RESPONSE (Code):', res);
       setResult(res);
       setActiveTab('pageObject');
+      refreshSub();
     } catch (err: any) {
       console.error(err);
+      if (err?.response?.status === 403) {
+        refreshSub();
+        return;
+      }
       setError(err?.response?.data?.message || 'Failed to generate code. Please try again.');
     } finally {
       setLoading(false);
@@ -66,6 +74,7 @@ const CodeGeneratorPage = dynamic(() => Promise.resolve(function CodeGeneratorPa
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <ProGate status={status} loading={subLoading} showTrialBadge>
       {/* Header */}
       <div>
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
@@ -153,6 +162,7 @@ const CodeGeneratorPage = dynamic(() => Promise.resolve(function CodeGeneratorPa
           </div>
         </Card>
       )}
+      </ProGate>
     </div>
   );
 }), { ssr: false });

@@ -3,4 +3,5 @@ export interface AIProviderInterface {
   generateTestCases(storyContext: string): Promise<string>;
   generateAutomationCode(testCaseContext: string): Promise<string>;
   parseRequirement(rawInput: string): Promise<string>;
+  generateCustomResponse(prompt: string, systemMessage: string): Promise<string>;
 }

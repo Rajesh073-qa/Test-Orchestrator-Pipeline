@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "../components/providers/query-provider";
-import Navbar from "../components/navbar";
 import { ToastProvider } from "../components/toast";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Test Orchestrator | AI-Powered QA",
-  description: "Generate test plans and automation code with AI",
+  title: "AuraTest AI | Intelligent QA Orchestration",
+  description: "Next-gen AI-powered test orchestrator for modern engineering teams.",
 };
 
 export default function RootLayout({
@@ -18,17 +18,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <QueryProvider>
-          <ToastProvider>
-            <Navbar />
-            {children}
-          </ToastProvider>
-        </QueryProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <QueryProvider>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
-
-

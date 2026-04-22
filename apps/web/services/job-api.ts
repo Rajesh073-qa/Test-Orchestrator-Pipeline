@@ -21,4 +21,7 @@ export const jobApi = {
     const { data } = await api.get(`/jobs/${id}`);
     return data;
   },
+  deleteJob: async (id: string): Promise<void> => {
+    await api.delete(`/jobs/${id}`);
+  },
 };

@@ -3,13 +3,15 @@
 import {
   LayoutDashboard, Beaker, Folder, Settings, LogOut, Menu, X,
   Activity, Zap, Layout, Database, Code, Shield, Users,
-  BarChart2, Bell, ChevronDown, User
+  BarChart2, Bell, ChevronRight, AlertCircle, CheckCircle2
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { getAuthUser, getUserInitials, type AuthUser } from "@/lib/auth";
+import Link from "next/link";
+import { AIChatBot } from "@/components/chatbot";
 
 // ── Nav Items per Role ──────────────────────────────────────────────────────
 
@@ -17,9 +19,14 @@ const ADMIN_NAV = [
   { name: 'Admin Overview', href: '/dashboard/admin', icon: Shield },
   { name: 'User Management', href: '/dashboard/admin/users', icon: Users },
   { name: 'All Projects', href: '/dashboard/projects', icon: Folder },
-  { name: 'All Jobs', href: '/dashboard/jobs', icon: Activity },
-  { name: 'Test Cases', href: '/dashboard/test-cases', icon: Beaker },
-  { name: 'AI Generators', href: '/dashboard/generators/workflow', icon: Zap, badge: 'AI' },
+  { name: 'AI History', href: '/dashboard/jobs', icon: Activity },
+  { name: 'My Test Cases', href: '/dashboard/test-cases', icon: Beaker },
+  { name: 'My Test Plans', href: '/dashboard/test-plans', icon: Layout },
+  // Generators — admins can use them too
+  { name: 'Test Plan Gen', href: '/dashboard/generators/test-plan', icon: Layout, badge: 'AI' },
+  { name: 'Test Cases Gen', href: '/dashboard/generators/test-cases', icon: Database, badge: 'AI' },
+  { name: 'Code Gen', href: '/dashboard/generators/code', icon: Code, badge: 'AI' },
+  { name: 'Workflow Gen', href: '/dashboard/generators/workflow', icon: Zap, badge: 'New' },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart2 },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
@@ -32,14 +39,25 @@ const QA_NAV = [
   { name: 'Workflow Gen', href: '/dashboard/generators/workflow', icon: Zap, badge: 'New' },
   { name: 'My Projects', href: '/dashboard/projects', icon: Folder },
   { name: 'My Test Cases', href: '/dashboard/test-cases', icon: Beaker },
-  { name: 'Jobs', href: '/dashboard/jobs', icon: Activity },
+  { name: 'My Test Plans', href: '/dashboard/test-plans', icon: Layout },
+  { name: 'AI History', href: '/dashboard/jobs', icon: Activity },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+];
+
+// Static notifications — in production these would come from the API
+const NOTIFICATIONS = [
+  { id: '1', title: 'AI Job Completed', message: 'Your test plan has been generated.', time: '2 min ago', read: false, icon: CheckCircle2, color: 'text-emerald-500' },
+  { id: '2', title: 'New Feature: Analytics', message: 'Check your usage analytics in the new Analytics page.', time: '1 hr ago', read: false, icon: BarChart2, color: 'text-blue-500' },
+  { id: '3', title: 'Jira sync available', message: 'Connect Jira to import issues directly into generators.', time: '3 hr ago', read: true, icon: AlertCircle, color: 'text-amber-500' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState(NOTIFICATIONS);
+  const notifRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -54,10 +72,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [router]);
 
+  // Close notifications on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     router.push('/login');
   };
+
+  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   if (isAuthChecking) {
     return (
@@ -75,6 +107,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const initials = getUserInitials(user);
   const roleLabel = user?.role === 'ADMIN' ? 'Admin' : user?.role === 'QA' ? 'QA Engineer' : 'User';
   const roleColor = user?.role === 'ADMIN' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700';
+  // Dashboard home href — redirects to role-based dashboard
+  const dashboardHref = isAdmin ? '/dashboard/admin' : '/dashboard/qa';
 
   return (
     <div className="flex h-screen bg-slate-50/50">
@@ -83,15 +117,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         "bg-white border-r transition-all duration-300 flex flex-col shadow-sm",
         isSidebarOpen ? "w-64" : "w-16"
       )}>
-        {/* Logo */}
+        {/* Logo — FIX #1: click goes to role dashboard, not landing page */}
         <div className="p-4 flex items-center justify-between border-b h-16 flex-shrink-0">
           {isSidebarOpen && (
-            <div className="flex items-center gap-2">
+            <Link href={dashboardHref} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", isAdmin ? "bg-red-600" : "bg-primary")}>
                 {isAdmin ? <Shield className="w-4 h-4 text-white" /> : <Zap className="w-4 h-4 text-white" />}
               </div>
-              <span className="font-black text-lg text-slate-900">Orchestor</span>
-            </div>
+              <span className="font-black text-lg text-slate-900 dark:text-white">AuraTest</span>
+            </Link>
           )}
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
             {isSidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -110,7 +144,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard/admin' && item.href !== '/dashboard/qa' && pathname.startsWith(item.href));
+            const isActive = pathname === item.href ||
+              (item.href !== '/dashboard/admin' && item.href !== '/dashboard/qa' && pathname.startsWith(item.href));
             return (
               <a
                 key={item.name}
@@ -142,6 +177,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
+        {/* Upgrade CTA for non-admin users */}
+        {isSidebarOpen && !isAdmin && (
+          <div className="mx-3 mb-3 p-3 rounded-xl bg-gradient-to-br from-primary to-blue-600 text-white">
+            <p className="text-xs font-black">Upgrade to Pro</p>
+            <p className="text-[10px] opacity-70 mt-0.5">Unlock unlimited AI generations</p>
+            <Link href="/pricing">
+              <button className="mt-2 w-full text-[10px] font-black bg-white text-primary rounded-lg py-1.5 hover:bg-white/90 transition-colors">
+                View Plans →
+              </button>
+            </Link>
+          </div>
+        )}
+
         {/* User Footer */}
         <div className="p-3 border-t flex-shrink-0">
           {isSidebarOpen ? (
@@ -170,13 +218,56 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Topbar */}
         <header className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10 px-6 py-3 h-14 flex items-center justify-between">
           <div className="text-sm text-slate-400 font-medium capitalize">
-            {pathname.split('/').filter(Boolean).join(' / ')}
+            {pathname.split('/').filter(Boolean).slice(1).join(' / ') || 'Dashboard'}
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 relative">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-            </Button>
+            {/* FIX #3: Working notification bell */}
+            <div ref={notifRef} className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-slate-500 hover:text-slate-900 relative"
+                onClick={() => setShowNotifications(prev => !prev)}
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </Button>
+
+              {showNotifications && (
+                <div className="absolute right-0 top-10 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-3 border-b flex items-center justify-between">
+                    <h3 className="font-black text-slate-900 text-sm">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button onClick={markAllRead} className="text-[10px] font-bold text-primary hover:underline">
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.map(notif => (
+                      <div
+                        key={notif.id}
+                        className={cn("px-4 py-3 border-b last:border-0 flex gap-3 hover:bg-slate-50 transition-colors cursor-pointer", !notif.read && "bg-blue-50/50")}
+                        onClick={() => setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, read: true } : n))}
+                      >
+                        <notif.icon className={cn("w-4 h-4 mt-0.5 flex-shrink-0", notif.color)} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-900">{notif.title}</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{notif.message}</p>
+                          <p className="text-[10px] text-slate-400 mt-1">{notif.time}</p>
+                        </div>
+                        {!notif.read && <div className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1" />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-2">
               <div className={cn("w-7 h-7 rounded-full flex items-center justify-center text-xs font-black", isAdmin ? "bg-red-100 text-red-700" : "bg-primary/10 text-primary")}>
                 {initials}
@@ -192,6 +283,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </div>
       </main>
+      <AIChatBot />
     </div>
   );
 }

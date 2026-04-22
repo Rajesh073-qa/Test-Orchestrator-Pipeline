@@ -57,5 +57,8 @@ export const testCaseApi = {
     link.click();
     link.remove();
   },
+  deleteTestCase: async (id: string): Promise<void> => {
+    await api.delete(`/test-case/${id}`);
+  },
 };
 

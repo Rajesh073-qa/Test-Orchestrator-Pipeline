@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, InternalServerErrorException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { AIService as RepoAIService, OpenAIProvider, MockAIProvider } from '@repo/ai';
 import { ConfigService } from '@nestjs/config';
@@ -36,6 +36,46 @@ export class AIService {
       return this.fallbackAIService;
     }
   }
+
+  /**
+   * Enforce free-trial gate:
+   * - ADMIN role → always allowed
+   * - Active Pro/Enterprise subscription → allowed
+   * - freeTrialUsed === false → allow once, then mark as used
+   * - freeTrialUsed === true → throw ForbiddenException (upgrade required)
+   */
+  public async enforceTrialGate(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { subscription: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+
+    // Admins are always unrestricted
+    if (user.role === 'ADMIN') return;
+
+    // Active paid subscription → unrestricted
+    if (user.subscription?.status === 'ACTIVE' && user.subscription?.plan !== 'STARTER') return;
+
+    // Free trial: first use
+    if (!user.freeTrialUsed) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { freeTrialUsed: true },
+      });
+      return; // allow
+    }
+
+    // Trial exhausted — must upgrade
+    throw new ForbiddenException(
+      JSON.stringify({
+        code: 'FREE_TRIAL_EXHAUSTED',
+        message: 'You have used your free trial. Please upgrade to Pro to continue.',
+      }),
+    );
+  }
+
 
   private async retryAI<T>(
     operation: () => Promise<string>,
@@ -82,6 +122,8 @@ export class AIService {
             description: tc.description,
             priority: tc.priority,
             type: tc.type,
+            preConditions: tc.preConditions,
+            dataScenarios: tc.dataScenarios || [],
             userStoryId: userStoryId,
             steps: {
               create: tc.steps.map((s) => ({
@@ -163,28 +205,86 @@ export class AIService {
   // ── Quick (stateless) generators — use per-user config ──────────────────────
 
   async quickGenerateTestPlan(text: string, userId?: string) {
+    if (userId) await this.enforceTrialGate(userId);
     const aiService = userId ? await this.getAIService(userId) : this.fallbackAIService;
-    return this.retryAI(
+    const result = await this.retryAI(
       () => aiService.generateTestPlan(text),
       (data) => TestPlanSchema.parse(data)
     );
+    if (userId) {
+      await this.prisma.job.create({
+        data: {
+          type: 'TEST_PLAN',
+          status: 'COMPLETED',
+          progress: 100,
+          total: 100,
+          result: JSON.stringify(result),
+          userId,
+        }
+      });
+    }
+    return result;
   }
 
   async quickGenerateTestCases(text: string, userId?: string) {
+    if (userId) await this.enforceTrialGate(userId);
     const aiService = userId ? await this.getAIService(userId) : this.fallbackAIService;
-    return this.retryAI(
+    const result = await this.retryAI(
       () => aiService.generateTestCases(text),
       (data) => TestCasesResponseSchema.parse(data)
     );
+    if (userId) {
+      await this.prisma.job.create({
+        data: {
+          type: 'TEST_CASES',
+          status: 'COMPLETED',
+          progress: 100,
+          total: 100,
+          result: JSON.stringify(result),
+          userId,
+        }
+      });
+    }
+    return result;
   }
 
   async quickGenerateCode(text: string, framework: string, userId?: string) {
+    if (userId) await this.enforceTrialGate(userId);
     const aiService = userId ? await this.getAIService(userId) : this.fallbackAIService;
     const context = `Context: ${text}\nRequirements:\n- Use ${framework} with ${framework === 'selenium' ? 'Java' : 'TypeScript'}.\n- Follow Page Object Model (POM).\n- Return a JSON object with 'testFile' and 'pageObject' keys.`;
     const { CodeGenSchema } = require('../code-generator/validators/code-gen.schema');
-    return this.retryAI(
+    const result = await this.retryAI(
       () => aiService.generateAutomationCode(context),
       (data) => CodeGenSchema.parse(data)
     );
+    if (userId) {
+      await this.prisma.job.create({
+        data: {
+          type: 'AUTOMATION_CODE',
+          status: 'COMPLETED',
+          progress: 100,
+          total: 100,
+          result: JSON.stringify({ ...result, framework }),
+          userId,
+        }
+      });
+    }
+    return result;
+  }
+
+  /** Check trial status for a user — used by frontend to show upgrade prompts */
+  async getTrialStatus(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { subscription: true },
+    });
+    if (!user) return { status: 'UNKNOWN' };
+
+    if (user.role === 'ADMIN') return { status: 'UNLIMITED' };
+    if (user.subscription?.status === 'ACTIVE' && user.subscription?.plan !== 'STARTER') {
+      return { status: 'PRO', plan: user.subscription.plan };
+    }
+    if (!user.freeTrialUsed) return { status: 'FREE_TRIAL_AVAILABLE' };
+    return { status: 'FREE_TRIAL_EXHAUSTED' };
   }
 }

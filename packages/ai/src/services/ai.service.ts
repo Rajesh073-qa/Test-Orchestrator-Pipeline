@@ -18,4 +18,8 @@ export class AIService {
   async parseRequirement(rawInput: string): Promise<string> {
     return this.provider.parseRequirement(rawInput);
   }
+
+  async generateCustomResponse(prompt: string, systemMessage: string): Promise<string> {
+    return this.provider.generateCustomResponse(prompt, systemMessage);
+  }
 }

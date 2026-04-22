@@ -88,7 +88,13 @@ export class JobService {
     return this.prisma.job.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      take: 10,
+      take: 100,
+    });
+  }
+
+  async deleteJob(id: string, userId: string) {
+    return this.prisma.job.delete({
+      where: { id, userId },
     });
   }
 }

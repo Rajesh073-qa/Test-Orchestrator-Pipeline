@@ -1,4 +1,4 @@
-import { Controller, Post, Param, UseGuards, Query, Get, Res } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, Query, UseGuards, Res } from '@nestjs/common';
 import { CodeGeneratorService } from './code-generator.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -18,6 +18,14 @@ export class CodeGeneratorController {
     @Query('force') force?: string,
   ) {
     return this.codeGeneratorService.generateCode(testCaseId, user.userId, force === 'true');
+  }
+
+  @Delete('scripts/:id')
+  async deleteScript(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.codeGeneratorService.deleteScript(id, user.userId);
   }
 
   @Get('export/:testCaseId')

@@ -17,6 +17,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { BullModule } from '@nestjs/bullmq';
 
 import { AdminModule } from './admin/admin.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AdminModule } from './admin/admin.module';
     AIConfigModule,
     PaymentModule,
     AdminModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [

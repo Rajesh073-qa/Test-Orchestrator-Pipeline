@@ -28,32 +28,39 @@ export class StripeService {
     const amount = plan === 'PRO' ? 399900 : 1999900; // ₹3,999 or ₹19,999 in paise
     const planName = plan === 'PRO' ? 'Pro Plan' : 'Enterprise Plan';
 
-    const session = await this.stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'inr',
-            product_data: {
-              name: planName,
-              description: `Upgrade to ${planName} for advanced features.`,
+    try {
+      const session = await this.stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'inr',
+              product_data: {
+                name: planName,
+                description: `Upgrade to ${planName} for advanced features.`,
+              },
+              unit_amount: amount,
             },
-            unit_amount: amount,
+            quantity: 1,
           },
-          quantity: 1,
+        ],
+        mode: 'payment',
+        success_url: `${this.configService.get('FRONTEND_URL')}/dashboard?payment=success`,
+        cancel_url: `${this.configService.get('FRONTEND_URL')}/pricing?payment=cancelled`,
+        client_reference_id: userId,
+        metadata: {
+          userId,
+          plan,
         },
-      ],
-      mode: 'payment',
-      success_url: `${this.configService.get('FRONTEND_URL')}/dashboard?payment=success`,
-      cancel_url: `${this.configService.get('FRONTEND_URL')}/pricing?payment=cancelled`,
-      client_reference_id: userId,
-      metadata: {
-        userId,
-        plan,
-      },
-    });
+      });
 
-    return { url: session.url };
+      return { url: session.url };
+    } catch (err: any) {
+      this.logger.error(`Stripe checkout error: ${err.message}`);
+      // Return a 500 error instead of leaking Stripe's 401/400 errors
+      // which would otherwise trigger the frontend's 401 auth redirect interceptor.
+      throw new Error('Payment service is temporarily unavailable. Please try again later.');
+    }
   }
 
   async handleWebhook(sig: string, payload: Buffer) {

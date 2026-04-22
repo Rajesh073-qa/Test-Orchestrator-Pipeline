@@ -225,7 +225,12 @@ export default function AdminUsersPage() {
                   <td className="px-4 py-3 text-xs text-slate-500">{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-300 hover:text-red-500 hover:bg-red-50">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 w-7 p-0 text-slate-300 hover:text-red-500 hover:bg-red-50"
+                        onClick={() => toast({ type: 'info', title: 'Coming Soon', message: 'User suspension will be available in the next release.' })}
+                      >
                         <Ban className="w-3.5 h-3.5" />
                       </Button>
                     </div>

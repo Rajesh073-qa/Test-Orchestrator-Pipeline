@@ -19,10 +19,11 @@ export default function DashboardPage() {
       router.replace('/login');
       return;
     }
+    const params = window.location.search;
     if (user.role === 'ADMIN') {
-      router.replace('/dashboard/admin');
+      router.replace(`/dashboard/admin${params}`);
     } else {
-      router.replace('/dashboard/qa');
+      router.replace(`/dashboard/qa${params}`);
     }
   }, [router]);
 

@@ -9,8 +9,10 @@ export const TestCaseStepSchema = z.object({
 export const TestCaseSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
-  type: z.enum(['Positive', 'Negative', 'Edge']),
+  preConditions: z.string().optional(),
+  type: z.string(),
   priority: z.enum(['High', 'Medium', 'Low']),
+  dataScenarios: z.array(z.string()).optional(),
   steps: z.array(TestCaseStepSchema).min(1),
 });
 
